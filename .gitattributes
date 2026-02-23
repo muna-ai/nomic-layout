@@ -1,0 +1,1 @@
+test-docs-small/scanned-maintenance.pdf filter=lfs diff=lfs merge=lfs -text
