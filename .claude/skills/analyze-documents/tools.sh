@@ -18,12 +18,14 @@ PYTHON="${PYTHON:-python3}"
 DIRECTORY=""
 QUERY=""
 TOP_K=10
+MIN_SCORE=""
 REBUILD=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --query) QUERY="$2"; shift 2 ;;
         --top-k) TOP_K="$2"; shift 2 ;;
+        --min-score) MIN_SCORE="$2"; shift 2 ;;
         --rebuild) REBUILD="--rebuild"; shift ;;
         *) DIRECTORY="$1"; shift ;;
     esac
@@ -161,4 +163,5 @@ fi
 # Step 5: Store in LanceDB + query + render (lightweight, no model loading)
 # ---------------------------------------------------------------------------
 "$PYTHON" "$SKILL_DIR/orchestrate.py" \
-    "$DIRECTORY" "$TMP_DIR" --query "$QUERY" --top-k "$TOP_K"
+    "$DIRECTORY" "$TMP_DIR" --query "$QUERY" --top-k "$TOP_K" \
+    ${MIN_SCORE:+--min-score "$MIN_SCORE"}

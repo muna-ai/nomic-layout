@@ -85,7 +85,7 @@ def _add_to_table(db, records: list[dict]):
         db.create_table(TABLE_NAME, data=records, schema=_get_schema())
 
 
-def run(directory: Path, tmp_dir: Path, query: str, top_k: int):
+def run(directory: Path, tmp_dir: Path, query: str, top_k: int, min_score: float = 0.0):
     import lancedb
 
     cache = _cache_dir(directory)
@@ -167,13 +167,16 @@ def run(directory: Path, tmp_dir: Path, query: str, top_k: int):
 
     results = []
     for r in raw_results:
+        score = round(1.0 - r.get("_distance", 0.0), 4)
+        if score < min_score:
+            continue
         results.append({
             "document_name": r["document_name"],
             "page_number": r["page_number"],
             "roi_index": r["roi_index"],
             "label": r["label"],
             "text": r["text"],
-            "similarity_score": round(1.0 - r.get("_distance", 0.0), 4),
+            "similarity_score": score,
             "bounding_box": {
                 "x_min": r["x_min"], "y_min": r["y_min"],
                 "x_max": r["x_max"], "y_max": r["y_max"],
@@ -256,6 +259,7 @@ if __name__ == "__main__":
 
     query = ""
     top_k = DEFAULT_TOP_K
+    min_score = 0.0
     i = 2
     while i < len(args):
         if args[i] == "--query":
@@ -264,6 +268,9 @@ if __name__ == "__main__":
         elif args[i] == "--top-k":
             top_k = int(args[i + 1])
             i += 2
+        elif args[i] == "--min-score":
+            min_score = float(args[i + 1])
+            i += 2
         else:
             i += 1
-    run(directory, tmp_dir, query, top_k)
+    run(directory, tmp_dir, query, top_k, min_score)

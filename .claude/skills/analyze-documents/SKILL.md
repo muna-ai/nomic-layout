@@ -15,6 +15,7 @@ Required flags:
 
 Optional flags:
   --top-k N           Number of results to return (default: 10)
+  --min-score F       Minimum similarity score to include a result, 0.0-1.0 (default: 0.0, no filtering)
   --rebuild           Force re-index all documents from scratch
 
 If you get an ImportError, install missing packages with:
