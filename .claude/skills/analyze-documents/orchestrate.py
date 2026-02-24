@@ -1,15 +1,20 @@
 """
-Orchestrate phase 3 of document analysis: LanceDB storage, query, and rendering.
+Orchestrate document analysis: store embeddings in LanceDB, query, and render.
 
-No heavy ML models are loaded in this process. Heavy work (layout detection,
-embedding) is handled by separate scripts called from tools.sh.
+Reads records from layout detection and per-chunk embedding vectors produced by
+tools.sh, writes them incrementally to LanceDB, then runs the vector query.
+No heavy ML models are loaded in this process.
 """
 
+import glob
 import json
+import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+import numpy as np
 
 _SKILL_DIR = Path(__file__).resolve().parent
 CACHE_DIR_NAME = ".analyze-documents-cache"
@@ -72,21 +77,27 @@ def _has_table(db, name: str) -> bool:
     return name in db.list_tables().tables
 
 
-def phase3(directory: Path, tmp_dir: Path, query: str, top_k: int):
+def _add_to_table(db, records: list[dict]):
+    """Add records to LanceDB, creating table if needed."""
+    if _has_table(db, TABLE_NAME):
+        db.open_table(TABLE_NAME).add(records)
+    else:
+        db.create_table(TABLE_NAME, data=records, schema=_get_schema())
+
+
+def run(directory: Path, tmp_dir: Path, query: str, top_k: int):
     import lancedb
-    import numpy as np
 
     cache = _cache_dir(directory)
     db_path = str(cache / "lancedb")
     db = lancedb.connect(db_path)
     manifest = load_manifest(cache)
-    table_exists = _has_table(db, TABLE_NAME)
 
     # Handle removals
     to_remove_path = tmp_dir / "to_remove.json"
     if to_remove_path.exists():
         to_remove = json.loads(to_remove_path.read_text())
-        if to_remove and table_exists:
+        if to_remove and _has_table(db, TABLE_NAME):
             table = db.open_table(TABLE_NAME)
             for name in to_remove:
                 escaped = name.replace("'", "''")
@@ -99,28 +110,29 @@ def phase3(directory: Path, tmp_dir: Path, query: str, top_k: int):
     records_path = tmp_dir / "records.json"
     all_records = json.loads(records_path.read_text()) if records_path.exists() else []
 
-    # Attach vectors from embedding
-    vectors_path = tmp_dir / "vectors.npy"
-    if all_records and vectors_path.exists():
-        vectors = np.load(str(vectors_path))
-
+    if all_records:
         # Delete old rows for re-indexed files
-        if table_exists:
+        if _has_table(db, TABLE_NAME):
             table = db.open_table(TABLE_NAME)
             doc_names = {r["document_name"] for r in all_records}
             for name in doc_names:
                 escaped = name.replace("'", "''")
                 table.delete(f"document_name = '{escaped}'")
 
-        for rec, vec in zip(all_records, vectors):
-            rec["vector"] = vec.tolist()
+        # Read per-chunk vectors and write to LanceDB incrementally
+        chunk_files = sorted(
+            glob.glob(str(tmp_dir / "vectors_chunk_*.npy")),
+            key=lambda f: int(re.search(r"_(\d+)\.npy", f).group(1)),
+        )
+        offset = 0
+        for chunk_path in chunk_files:
+            vectors = np.load(chunk_path)
+            batch = all_records[offset : offset + len(vectors)]
+            for rec, vec in zip(batch, vectors):
+                rec["vector"] = vec.tolist()
+            _add_to_table(db, batch)
+            offset += len(vectors)
 
-        # Store in LanceDB
-        if table_exists:
-            table = db.open_table(TABLE_NAME)
-            table.add(all_records)
-        else:
-            db.create_table(TABLE_NAME, data=all_records, schema=_get_schema())
         print(f"Indexed {len(all_records)} ROIs.", file=sys.stderr)
 
     # Query
@@ -128,21 +140,20 @@ def phase3(directory: Path, tmp_dir: Path, query: str, top_k: int):
         print(json.dumps({"query": query, "num_documents_indexed": 0, "num_rois_indexed": 0, "results": [], "annotated_pages": []}))
         return
 
-    # Embed query
+    # Embed query via subprocess (tiny — just 1 text)
+    query_json = tmp_dir / "query.json"
     query_vectors_path = tmp_dir / "query_vectors.npy"
-    if not query_vectors_path.exists():
-        query_json = tmp_dir / "query.json"
-        query_json.write_text(json.dumps([query]))
-        result = subprocess.run(
-            [sys.executable, str(_SKILL_DIR / "embed_texts.py"),
-             str(query_json), str(query_vectors_path), "search_query"],
-            capture_output=True, text=True,
-        )
-        if result.stderr:
-            print(result.stderr, end="", file=sys.stderr)
-        if result.returncode != 0:
-            print(json.dumps({"error": f"Query embedding failed: {result.stderr}"}))
-            sys.exit(1)
+    query_json.write_text(json.dumps([query]))
+    result = subprocess.run(
+        [sys.executable, str(_SKILL_DIR / "embed_texts.py"),
+         str(query_json), str(query_vectors_path), "search_query"],
+        capture_output=True, text=True,
+    )
+    if result.stderr:
+        print(result.stderr, end="", file=sys.stderr)
+    if result.returncode != 0:
+        print(json.dumps({"error": f"Query embedding failed: {result.stderr}"}))
+        sys.exit(1)
 
     query_vector = np.load(str(query_vectors_path))[0]
 
@@ -255,4 +266,4 @@ if __name__ == "__main__":
             i += 2
         else:
             i += 1
-    phase3(directory, tmp_dir, query, top_k)
+    run(directory, tmp_dir, query, top_k)

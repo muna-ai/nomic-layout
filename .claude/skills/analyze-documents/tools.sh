@@ -52,7 +52,6 @@ echo "$TO_REMOVE" > "$TMP_DIR/to_remove.json"
 # ---------------------------------------------------------------------------
 # Step 2: Layout detection — one process per document, completely isolated
 # ---------------------------------------------------------------------------
-ALL_RECORDS="[]"
 INDEXED_FILES=""
 
 if [[ -n "$TO_INDEX" ]]; then
@@ -69,21 +68,23 @@ if [[ -n "$TO_INDEX" ]]; then
         fi
     done
 
-    # Merge all ROI records into a single JSON array
+    # Merge all ROI records directly to file (avoid large bash variables)
     if [[ -n "$INDEXED_FILES" ]]; then
-        ALL_RECORDS=$("$PYTHON" -c "
+        "$PYTHON" -c "
 import json, sys
 records = []
 for path in sys.argv[1:]:
     data = json.loads(open(path).read())
     records.extend(data['records'])
-print(json.dumps(records))
-" $INDEXED_FILES)
+open('$TMP_DIR/records.json', 'w').write(json.dumps(records))
+" $INDEXED_FILES
     fi
 fi
 
-# Write merged records
-echo "$ALL_RECORDS" > "$TMP_DIR/records.json"
+# Ensure records.json exists
+if [[ ! -f "$TMP_DIR/records.json" ]]; then
+    echo "[]" > "$TMP_DIR/records.json"
+fi
 
 # ---------------------------------------------------------------------------
 # Step 3: Update manifest for indexed files
@@ -129,7 +130,35 @@ manifest_path.write_text(json.dumps(manifest, indent=2))
 fi
 
 # ---------------------------------------------------------------------------
-# Step 4: Embed, store in LanceDB, query, and render
+# Step 4: Embed texts in chunks — each chunk is a fully isolated process
+# ---------------------------------------------------------------------------
+NUM_RECORDS=$("$PYTHON" -c "import json; print(len(json.loads(open('$TMP_DIR/records.json').read())))")
+CHUNK_SIZE=100
+
+if [[ "$NUM_RECORDS" -gt 0 ]]; then
+    # Split texts into chunk files
+    NUM_CHUNKS=$("$PYTHON" -c "
+import json, math
+records = json.loads(open('$TMP_DIR/records.json').read())
+texts = [r['text'] for r in records]
+chunk_size = $CHUNK_SIZE
+num_chunks = math.ceil(len(texts) / chunk_size)
+for i in range(num_chunks):
+    chunk = texts[i*chunk_size : (i+1)*chunk_size]
+    open(f'$TMP_DIR/texts_chunk_{i}.json', 'w').write(json.dumps(chunk))
+print(num_chunks)
+")
+
+    echo "Embedding $NUM_RECORDS text regions in $NUM_CHUNKS chunk(s)..." >&2
+    for (( i=0; i<NUM_CHUNKS; i++ )); do
+        echo "  Embedding chunk $((i+1))/$NUM_CHUNKS..." >&2
+        "$PYTHON" "$SKILL_DIR/embed_texts.py" \
+            "$TMP_DIR/texts_chunk_${i}.json" "$TMP_DIR/vectors_chunk_${i}.npy" search_document
+    done
+fi
+
+# ---------------------------------------------------------------------------
+# Step 5: Store in LanceDB + query + render (lightweight, no model loading)
 # ---------------------------------------------------------------------------
 "$PYTHON" "$SKILL_DIR/orchestrate.py" \
     "$DIRECTORY" "$TMP_DIR" --query "$QUERY" --top-k "$TOP_K"
