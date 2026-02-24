@@ -198,12 +198,27 @@ def run(directory: Path, tmp_dir: Path, query: str, top_k: int, min_score: float
     print(json.dumps(output, indent=2))
 
 
+def _load_fonts():
+    from PIL import ImageFont
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
+        font_bold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 13)
+    except (OSError, IOError):
+        font = ImageFont.load_default()
+        font_bold = font
+        font_small = font
+    return font, font_bold, font_small
+
+
 def render_annotated_pages(results, directory):
     if not results:
         return []
 
     import pymupdf
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw
+
+    font, font_bold, font_small = _load_fonts()
 
     page_groups = {}
     for r in results:
@@ -212,6 +227,7 @@ def render_annotated_pages(results, directory):
 
     out_dir = Path(tempfile.mkdtemp(prefix="analyze-docs-"))
     annotated = []
+    pdf_images = []
 
     for (doc_name, page_num), rois in page_groups.items():
         doc_path = directory / doc_name
@@ -233,21 +249,50 @@ def render_annotated_pages(results, directory):
             color = LABEL_COLORS.get(roi["label"], (255, 255, 0))
             x0, y0 = int(bb["x_min"] * w), int(bb["y_min"] * h)
             x1, y1 = int(bb["x_max"] * w), int(bb["y_max"] * h)
+
+            # Draw ROI highlight border
             for offset in range(3):
                 draw.rectangle((x0 - offset, y0 - offset, x1 + offset, y1 + offset), outline=color)
+
+            # Draw ROI label tag
             label_text = f"{roi['label']} ({roi['similarity_score']:.2f})"
-            try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
-            except (OSError, IOError):
-                font = ImageFont.load_default()
             text_bbox = draw.textbbox((x0, y0 - 18), label_text, font=font)
             draw.rectangle(text_bbox, fill=color)
             draw.text((x0, y0 - 18), label_text, fill=(255, 255, 255), font=font)
+
+            # Draw source annotation sticky note
+            short_name = doc_name.replace(".pdf", "")
+            src_line = f"Source: {short_name}, p.{page_num}"
+            score_line = f"Score: {roi['similarity_score']:.2f} | {roi['label']}"
+
+            tw = draw.textbbox((0, 0), src_line, font=font_bold)[2] + 16
+            sw = draw.textbbox((0, 0), score_line, font=font_small)[2] + 16
+            th = draw.textbbox((0, 0), src_line, font=font_bold)[3]
+            box_w = max(tw, sw)
+            box_h = th + 22 + 8
+
+            bx, by = x1 + 8, y0
+            if bx + box_w > w:
+                bx, by = x0, y1 + 8
+            if by + box_h > h:
+                by = y0 - box_h - 8
+
+            draw.rectangle((bx + 2, by + 2, bx + box_w + 2, by + box_h + 2), fill=(100, 100, 100))
+            draw.rectangle((bx, by, bx + box_w, by + box_h), fill=(255, 255, 220), outline=(180, 150, 50), width=2)
+            draw.text((bx + 8, by + 4), src_line, fill=(50, 50, 50), font=font_bold)
+            draw.text((bx + 8, by + 4 + th + 4), score_line, fill=(100, 100, 100), font=font_small)
 
         safe_name = doc_name.replace("/", "_").replace(" ", "_")
         out_path = out_dir / f"{safe_name}_page{page_num}.png"
         img.save(str(out_path))
         annotated.append({"document_name": doc_name, "page_number": page_num, "image_path": str(out_path)})
+        pdf_images.append(img)
+
+    # Combine all annotated pages into a single PDF
+    if pdf_images:
+        pdf_path = out_dir / "annotated_results.pdf"
+        pdf_images[0].save(str(pdf_path), "PDF", save_all=True, append_images=pdf_images[1:], resolution=150)
+        annotated.append({"combined_pdf": str(pdf_path)})
 
     return annotated
 
