@@ -129,27 +129,7 @@ manifest_path.write_text(json.dumps(manifest, indent=2))
 fi
 
 # ---------------------------------------------------------------------------
-# Step 4: Embed texts (if any were extracted) — completely separate process
-# ---------------------------------------------------------------------------
-NUM_RECORDS=$("$PYTHON" -c "import json; print(len(json.loads(open('$TMP_DIR/records.json').read())))")
-
-if [[ "$NUM_RECORDS" -gt 0 ]]; then
-    # Extract texts from records
-    "$PYTHON" -c "
-import json
-records = json.loads(open('$TMP_DIR/records.json').read())
-texts = [r['text'] for r in records]
-open('$TMP_DIR/texts.json', 'w').write(json.dumps(texts))
-print(f'Embedding {len(texts)} text regions...', end='', flush=True)
-import sys; sys.exit(0)
-" >&2
-
-    "$PYTHON" "$SKILL_DIR/embed_texts.py" \
-        "$TMP_DIR/texts.json" "$TMP_DIR/vectors.npy" search_document
-fi
-
-# ---------------------------------------------------------------------------
-# Step 5: Store in LanceDB + query + render (lightweight, no model loading)
+# Step 4: Embed, store in LanceDB, query, and render
 # ---------------------------------------------------------------------------
 "$PYTHON" "$SKILL_DIR/orchestrate.py" \
     "$DIRECTORY" "$TMP_DIR" --query "$QUERY" --top-k "$TOP_K"
