@@ -15,6 +15,7 @@ from muna import Muna
 
 EMBEDDING_DIM = 768
 BATCH_SIZE = 32
+MAX_CHARS = 2048  # Truncate long texts to avoid ONNX attention memory explosion
 
 
 def _embed_batch(muna, batch: list[str], task: str) -> np.ndarray:
@@ -57,6 +58,7 @@ if __name__ == "__main__":
     task = sys.argv[3] if len(sys.argv) > 3 else "search_document"
 
     texts = json.loads(open(input_path).read())
+    texts = [t[:MAX_CHARS] for t in texts]
     print(f"Embedding {len(texts)} texts (task={task})...", file=sys.stderr)
     vectors = embed_texts(texts, task=task)
     np.save(output_path, vectors)
