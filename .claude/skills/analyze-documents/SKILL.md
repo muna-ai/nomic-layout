@@ -5,10 +5,9 @@ argument-hint: <directory_path> --query "user question"
 ---
 Index and search PDF documents in the directory provided in $ARGUMENTS using layout detection, OCR, and semantic embeddings.
 
-Run: PYTHON=/path/to/venv/bin/python bash /home/anon/Work/fxn.ai/Code/src/current/nomic-layout-demo/.claude/skills/analyze-documents/tools.sh $ARGUMENTS
+Run: /home/anon/Work/fxn.ai/Code/src/current/nomic-layout-demo/.venv/bin/python /home/anon/Work/fxn.ai/Code/src/current/nomic-layout-demo/.claude/skills/analyze-documents/tools.py $ARGUMENTS
 
-Set the PYTHON environment variable to the Python interpreter that has the required packages installed. If using a venv at the project root, use:
-  PYTHON=/home/anon/Work/fxn.ai/Code/src/current/nomic-layout-demo/.venv/bin/python
+Use the Python interpreter from the project venv (or set the PYTHON env var to override which interpreter subprocesses use).
 
 Required flags:
   --query "the user's question about the documents"
