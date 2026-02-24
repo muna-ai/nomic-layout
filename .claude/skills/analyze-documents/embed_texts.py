@@ -14,7 +14,29 @@ import numpy as np
 from muna import Muna
 
 EMBEDDING_DIM = 768
-BATCH_SIZE = 96
+BATCH_SIZE = 32
+
+
+def _embed_batch(muna, batch: list[str], task: str) -> np.ndarray:
+    """Embed a single batch, retrying with smaller batches on failure."""
+    try:
+        prediction = muna.predictions.create(
+            tag="@nomic/nomic-embed-text-v1.5",
+            inputs={"texts": batch, "task": task, "dimensions": EMBEDDING_DIM},
+        )
+        if prediction.results is None or prediction.results[0] is None:
+            raise RuntimeError("Embedding returned None results")
+        return np.asarray(prediction.results[0], dtype=np.float32)
+    except Exception as e:
+        if len(batch) == 1:
+            print(f"  [warn] Failed to embed text ({len(batch[0])} chars): {e}", file=sys.stderr)
+            return np.zeros((1, EMBEDDING_DIM), dtype=np.float32)
+        # Split in half and retry
+        mid = len(batch) // 2
+        print(f"  [warn] Batch of {len(batch)} failed, retrying as 2x{mid}...", file=sys.stderr)
+        left = _embed_batch(muna, batch[:mid], task)
+        right = _embed_batch(muna, batch[mid:], task)
+        return np.concatenate([left, right], axis=0)
 
 
 def embed_texts(texts: list[str], task: str = "search_document") -> np.ndarray:
@@ -25,15 +47,7 @@ def embed_texts(texts: list[str], task: str = "search_document") -> np.ndarray:
     all_embeddings = []
     for i in range(0, len(texts), BATCH_SIZE):
         batch = texts[i : i + BATCH_SIZE]
-        prediction = muna.predictions.create(
-            tag="@nomic/nomic-embed-text-v1.5",
-            inputs={
-                "texts": batch,
-                "task": task,
-                "dimensions": EMBEDDING_DIM,
-            },
-        )
-        all_embeddings.append(np.asarray(prediction.results[0], dtype=np.float32))
+        all_embeddings.append(_embed_batch(muna, batch, task))
     return np.concatenate(all_embeddings, axis=0)
 
 
