@@ -26,7 +26,6 @@ Pygments==2.19.2
 PyMuPDF==1.27.1
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
-rapidocr-onnxruntime==1.4.4
 requests==2.32.5
 rich==14.3.3
 shapely==2.1.2

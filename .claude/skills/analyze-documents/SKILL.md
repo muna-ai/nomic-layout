@@ -5,9 +5,10 @@ argument-hint: <directory_path> --query "user question"
 ---
 Index and search PDF documents in the directory provided in $ARGUMENTS using layout detection, OCR, and semantic embeddings.
 
-Run: /home/anon/Work/fxn.ai/Code/src/current/nomic-layout-demo/.venv/bin/python /home/anon/Work/fxn.ai/Code/src/current/nomic-layout-demo/.claude/skills/analyze-documents/tools.py $ARGUMENTS
+Run: python3 ~/.claude/skills/analyze-documents/tools.py $ARGUMENTS
 
-Use the Python interpreter from the project venv (or set the PYTHON env var to override which interpreter subprocesses use).
+Set the PYTHON environment variable if the default python3 doesn't have the required packages:
+  PYTHON=/path/to/venv/bin/python python3 ~/.claude/skills/analyze-documents/tools.py $ARGUMENTS
 
 Required flags:
   --query "the user's question about the documents"
@@ -18,11 +19,11 @@ Optional flags:
   --rebuild           Force re-index all documents from scratch
 
 If you get an ImportError, install missing packages with:
-  pip install muna pymupdf rapidocr-onnxruntime lancedb pyarrow Pillow
+  pip install muna pymupdf lancedb pyarrow Pillow
 
 The tool indexes documents by:
 1. Detecting layout regions (text, tables, headers, pictures, etc.) on every page
-2. Extracting text from each region via PyMuPDF with RapidOCR fallback
+2. Extracting text from each region via PyMuPDF with RapidOCR (via Muna) fallback
 3. Embedding extracted text with nomic-embed-text-v1.5 into a LanceDB vector database
 4. Caching the index so subsequent queries are fast (only new/changed files are re-indexed)
 
