@@ -12,17 +12,9 @@ import json
 import sys
 from pathlib import Path
 
-import numpy as np
 import pymupdf
 from PIL import Image
 from muna import Muna
-
-try:
-    from rapidocr_onnxruntime import RapidOCR
-    _ocr_engine = None
-    _HAS_OCR = True
-except ImportError:
-    _HAS_OCR = False
 
 DEFAULT_THRESHOLD = 0.5
 DPI = 200
@@ -116,48 +108,27 @@ def extract_text_from_roi(
     if text and _is_good_text(text):
         return text
 
-    # Fallback to RapidOCR via rapidocr_onnxruntime (standalone Python)
-    if _HAS_OCR:
-        try:
-            global _ocr_engine
-            if _ocr_engine is None:
-                _ocr_engine = RapidOCR()
-            w, h = image.size
-            cropped = image.crop((
-                max(0, int(x_min * w) - OCR_PAD_PX),
-                max(0, int(y_min * h) - OCR_PAD_PX),
-                min(w, int(x_max * w) + OCR_PAD_PX),
-                min(h, int(y_max * h) + OCR_PAD_PX),
-            ))
-            result, _ = _ocr_engine(np.array(cropped))
-            if result:
-                text = " ".join(line[1] for line in result).strip()
-                if text:
-                    return text
-        except Exception as e:
-            print(f"  [warn] RapidOCR failed: {e}", file=sys.stderr)
-
-    # # Fallback to RapidOCR via locally compiled Muna predictor
-    # try:
-    #     _load_local_ocr_predictor(muna)
-    #     w, h = image.size
-    #     cropped = image.crop((
-    #         max(0, int(x_min * w) - OCR_PAD_PX),
-    #         max(0, int(y_min * h) - OCR_PAD_PX),
-    #         min(w, int(x_max * w) + OCR_PAD_PX),
-    #         min(h, int(y_max * h) + OCR_PAD_PX),
-    #     ))
-    #     prediction = muna.predictions.create(
-    #         tag=_LOCAL_OCR_TAG,
-    #         inputs={"image": cropped},
-    #     )
-    #     if prediction.results and prediction.results[0]:
-    #         ocr_results = prediction.results[0]
-    #         text = " ".join(r["text"] for r in ocr_results).strip()
-    #         if text:
-    #             return text
-    # except Exception as e:
-    #     print(f"  [warn] RapidOCR failed: {e}", file=sys.stderr)
+    # Fallback to RapidOCR via locally compiled Muna predictor
+    try:
+        _load_local_ocr_predictor(muna)
+        w, h = image.size
+        cropped = image.crop((
+            max(0, int(x_min * w) - OCR_PAD_PX),
+            max(0, int(y_min * h) - OCR_PAD_PX),
+            min(w, int(x_max * w) + OCR_PAD_PX),
+            min(h, int(y_max * h) + OCR_PAD_PX),
+        ))
+        prediction = muna.predictions.create(
+            tag=_LOCAL_OCR_TAG,
+            inputs={"image": cropped},
+        )
+        if prediction.results and prediction.results[0]:
+            ocr_results = prediction.results[0]
+            text = " ".join(r["text"] for r in ocr_results).strip()
+            if text:
+                return text
+    except Exception as e:
+        print(f"  [warn] RapidOCR failed: {e}", file=sys.stderr)
 
     # # Fallback to RapidOCR via Muna (cloud)
     # try:
