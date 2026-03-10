@@ -29,4 +29,4 @@ The tool indexes documents by:
 
 The tool outputs JSON with matching document regions. Each result includes: document_name, page_number, roi_label, text, similarity_score, and bounding_box. It also saves annotated page images highlighting the matched regions and includes their file paths in the output.
 
-Present the results to the user, summarizing the most relevant passages found. If annotated images were generated, show them to the user using their file paths.
+Present the results to the user, summarizing the most relevant passages found. The tool generates an annotated results PDF (`annotated_results.pdf`) containing one page per query hit, with the matched ROI highlighted and annotated with the source document name and similarity score. After presenting the results, ALWAYS ask the user if they would like to see the annotated PDF.

@@ -19,6 +19,7 @@ from muna import Muna
 DEFAULT_THRESHOLD = 0.5
 DPI = 200
 OCR_PAD_PX = 20  # Padding around ROI crops for better OCR accuracy
+CAPTION_LABELS = {"Picture"}  # ROI labels eligible for BLIP captioning
 
 
 def detect_layout(muna: Muna, image: Image.Image) -> list[dict]:
@@ -102,6 +103,35 @@ def extract_text_from_roi(
     return ""
 
 
+def caption_image_roi(
+    muna: Muna,
+    image: Image.Image,
+    detection: dict,
+) -> str:
+    """Generate a text caption for an image ROI using BLIP."""
+    w, h = image.size
+    x_min = detection["x_min"]
+    y_min = detection["y_min"]
+    x_max = detection["x_max"]
+    y_max = detection["y_max"]
+    cropped = image.crop((
+        max(0, int(x_min * w)),
+        max(0, int(y_min * h)),
+        min(w, int(x_max * w)),
+        min(h, int(y_max * h)),
+    ))
+    try:
+        prediction = muna.predictions.create(
+            tag="@salesforce/blip-image-captioning-base",
+            inputs={"image": cropped},
+        )
+        if prediction.results and prediction.results[0]:
+            return prediction.results[0]
+    except Exception as e:
+        print(f"  [warn] BLIP captioning failed: {e}", file=sys.stderr)
+    return ""
+
+
 def process_pdf(pdf_path: Path) -> tuple[list[dict], int]:
     muna = Muna()
     doc = pymupdf.open(str(pdf_path))
@@ -123,14 +153,20 @@ def process_pdf(pdf_path: Path) -> tuple[list[dict], int]:
             continue
 
         for roi_idx, det in enumerate(detections):
+            label = det.get("label", "Unknown")
             text = extract_text_from_roi(muna, page, image, det)
+            # For image ROIs without text, try BLIP captioning
+            if not text and label in CAPTION_LABELS:
+                caption = caption_image_roi(muna, image, det)
+                if caption:
+                    text = f"[image: {caption}]"
             if not text:
                 continue
             records.append({
                 "document_name": pdf_path.name,
                 "page_number": page_idx + 1,
                 "roi_index": roi_idx,
-                "label": det.get("label", "Unknown"),
+                "label": label,
                 "text": text,
                 "x_min": float(det["x_min"]),
                 "y_min": float(det["y_min"]),
