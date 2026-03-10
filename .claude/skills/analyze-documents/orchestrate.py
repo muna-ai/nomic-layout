@@ -225,11 +225,18 @@ def render_annotated_pages(results, directory):
         key = (r["document_name"], r["page_number"])
         page_groups.setdefault(key, []).append(r)
 
+    # Sort pages by highest similarity score (best hit first)
+    sorted_pages = sorted(
+        page_groups.items(),
+        key=lambda item: max(r["similarity_score"] for r in item[1]),
+        reverse=True,
+    )
+
     out_dir = Path(tempfile.mkdtemp(prefix="analyze-docs-"))
     annotated = []
     pdf_images = []
 
-    for (doc_name, page_num), rois in page_groups.items():
+    for (doc_name, page_num), rois in sorted_pages:
         doc_path = directory / doc_name
         if not doc_path.exists():
             continue
