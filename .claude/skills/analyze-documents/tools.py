@@ -199,8 +199,11 @@ def _pipeline(python, directory, tmp_dir, args):
 
     # Inject timing into output JSON
     pipeline_elapsed = round(time.monotonic() - pipeline_t0, 2)
+    # orchestrate.py prints JSON to stdout, but MuPDF warnings may precede it
+    stdout = orchestrate_result.stdout
+    json_start = stdout.find("{")
     try:
-        output = json.loads(orchestrate_result.stdout)
+        output = json.loads(stdout[json_start:]) if json_start >= 0 else json.loads(stdout)
         output["_timing"] = {
             "pipeline_total_s": pipeline_elapsed,
             "documents": doc_timings,
@@ -210,7 +213,7 @@ def _pipeline(python, directory, tmp_dir, args):
         print(json.dumps(output, indent=2))
     except (json.JSONDecodeError, ValueError):
         # If orchestrate output isn't JSON, pass it through as-is
-        print(orchestrate_result.stdout, end="")
+        print(stdout, end="")
 
 
 if __name__ == "__main__":
