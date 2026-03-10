@@ -172,14 +172,17 @@ def process_pdf(pdf_path: Path) -> tuple[list[dict], int, dict]:
             if ocr_elapsed > 0.01:  # only count actual OCR calls, not fast PyMuPDF hits
                 ocr_times.append(ocr_elapsed)
                 ocr_calls += 1
-            # For image ROIs without text, try BLIP captioning
-            if not text and label in CAPTION_LABELS:
+            # For Picture ROIs, always run BLIP captioning and merge with OCR text
+            if label in CAPTION_LABELS:
                 t0 = time.monotonic()
                 caption = caption_image_roi(muna, image, det)
                 blip_times.append(time.monotonic() - t0)
                 blip_calls += 1
                 if caption:
-                    text = f"[image: {caption}]"
+                    if text:
+                        text = f"{text} [image: {caption}]"
+                    else:
+                        text = f"[image: {caption}]"
             if not text:
                 continue
             records.append({
