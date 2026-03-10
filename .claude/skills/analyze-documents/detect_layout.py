@@ -10,6 +10,7 @@ and writes results to a JSON file.
 
 import json
 import sys
+import time
 from pathlib import Path
 
 import pymupdf
@@ -132,11 +133,19 @@ def caption_image_roi(
     return ""
 
 
-def process_pdf(pdf_path: Path) -> tuple[list[dict], int]:
+def process_pdf(pdf_path: Path) -> tuple[list[dict], int, dict]:
     muna = Muna()
     doc = pymupdf.open(str(pdf_path))
     num_pages = len(doc)
     records = []
+    # Timing stats
+    t_start = time.monotonic()
+    layout_times = []
+    ocr_times = []
+    blip_times = []
+    total_rois = 0
+    ocr_calls = 0
+    blip_calls = 0
 
     for page_idx in range(num_pages):
         page = doc[page_idx]
@@ -145,19 +154,30 @@ def process_pdf(pdf_path: Path) -> tuple[list[dict], int]:
         del pix
 
         print(f"  Page {page_idx + 1}/{num_pages} — detecting layout...", file=sys.stderr)
+        t0 = time.monotonic()
         try:
             detections = detect_layout(muna, image)
         except Exception as e:
             print(f"  [warn] Layout detection failed on page {page_idx + 1}: {e}", file=sys.stderr)
             del image
             continue
+        layout_times.append(time.monotonic() - t0)
+        total_rois += len(detections)
 
         for roi_idx, det in enumerate(detections):
             label = det.get("label", "Unknown")
+            t0 = time.monotonic()
             text = extract_text_from_roi(muna, page, image, det)
+            ocr_elapsed = time.monotonic() - t0
+            if ocr_elapsed > 0.01:  # only count actual OCR calls, not fast PyMuPDF hits
+                ocr_times.append(ocr_elapsed)
+                ocr_calls += 1
             # For image ROIs without text, try BLIP captioning
             if not text and label in CAPTION_LABELS:
+                t0 = time.monotonic()
                 caption = caption_image_roi(muna, image, det)
+                blip_times.append(time.monotonic() - t0)
+                blip_calls += 1
                 if caption:
                     text = f"[image: {caption}]"
             if not text:
@@ -178,16 +198,31 @@ def process_pdf(pdf_path: Path) -> tuple[list[dict], int]:
         del image
 
     doc.close()
-    return records, num_pages
+    total_elapsed = time.monotonic() - t_start
+    timing = {
+        "total_s": round(total_elapsed, 2),
+        "num_pages": num_pages,
+        "total_rois_detected": total_rois,
+        "layout_total_s": round(sum(layout_times), 2),
+        "layout_avg_per_page_s": round(sum(layout_times) / len(layout_times), 3) if layout_times else 0,
+        "ocr_calls": ocr_calls,
+        "ocr_total_s": round(sum(ocr_times), 2),
+        "ocr_avg_per_roi_s": round(sum(ocr_times) / len(ocr_times), 3) if ocr_times else 0,
+        "blip_calls": blip_calls,
+        "blip_total_s": round(sum(blip_times), 2),
+        "blip_avg_per_roi_s": round(sum(blip_times) / len(blip_times), 3) if blip_times else 0,
+    }
+    return records, num_pages, timing
 
 
 if __name__ == "__main__":
     pdf_path = Path(sys.argv[1])
     output_path = Path(sys.argv[2])
 
-    records, num_pages = process_pdf(pdf_path)
+    records, num_pages, timing = process_pdf(pdf_path)
     output_path.write_text(json.dumps({
         "records": records,
         "num_pages": num_pages,
+        "timing": timing,
     }))
     print(f"  Extracted {len(records)} text regions from {num_pages} pages.", file=sys.stderr)

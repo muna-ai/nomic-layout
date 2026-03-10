@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent
@@ -63,6 +64,9 @@ def main():
 
 
 def _pipeline(python, directory, tmp_dir, args):
+    pipeline_t0 = time.monotonic()
+    doc_timings = []
+
     # -----------------------------------------------------------------------
     # Step 1: Compute diff — which files need indexing?
     # -----------------------------------------------------------------------
@@ -96,12 +100,14 @@ def _pipeline(python, directory, tmp_dir, args):
         else:
             print(f"[error] Layout detection failed for {doc_name}", file=sys.stderr)
 
-    # Merge all ROI records into a single file
+    # Merge all ROI records into a single file and collect per-doc timing
     if indexed_rois_files:
         all_records = []
         for rois_path in indexed_rois_files:
             data = json.loads(rois_path.read_text())
             all_records.extend(data["records"])
+            if "timing" in data:
+                doc_timings.append({"document": data["records"][0]["document_name"] if data["records"] else rois_path.stem, **data["timing"]})
         (tmp_dir / "records.json").write_text(json.dumps(all_records))
 
     # Ensure records.json exists
@@ -148,9 +154,12 @@ def _pipeline(python, directory, tmp_dir, args):
     all_records = json.loads(records_path.read_text())
     num_records = len(all_records)
 
+    embed_timing = {"total_s": 0, "num_texts": 0, "num_chunks": 0}
     if num_records > 0:
         texts = [r["text"] for r in all_records]
         num_chunks = math.ceil(len(texts) / CHUNK_SIZE)
+        embed_timing["num_texts"] = len(texts)
+        embed_timing["num_chunks"] = num_chunks
 
         # Write chunk files
         for i in range(num_chunks):
@@ -158,6 +167,7 @@ def _pipeline(python, directory, tmp_dir, args):
             (tmp_dir / f"texts_chunk_{i}.json").write_text(json.dumps(chunk))
 
         print(f"Embedding {num_records} text regions in {num_chunks} chunk(s)...", file=sys.stderr)
+        embed_t0 = time.monotonic()
         for i in range(num_chunks):
             print(f"  Embedding chunk {i + 1}/{num_chunks}...", file=sys.stderr)
             _run([
@@ -166,10 +176,12 @@ def _pipeline(python, directory, tmp_dir, args):
                 str(tmp_dir / f"vectors_chunk_{i}.npy"),
                 "search_document",
             ])
+        embed_timing["total_s"] = round(time.monotonic() - embed_t0, 2)
 
     # -----------------------------------------------------------------------
     # Step 5: Store in LanceDB + query + render (lightweight, no model loading)
     # -----------------------------------------------------------------------
+    orchestrate_t0 = time.monotonic()
     orchestrate_args = [
         python, str(SKILL_DIR / "orchestrate.py"),
         str(directory), str(tmp_dir),
@@ -178,7 +190,27 @@ def _pipeline(python, directory, tmp_dir, args):
     ]
     if args.min_score > 0:
         orchestrate_args.extend(["--min-score", str(args.min_score)])
-    _run(orchestrate_args)
+    orchestrate_result = _run(orchestrate_args, capture_output=True)
+    orchestrate_elapsed = round(time.monotonic() - orchestrate_t0, 2)
+
+    # Print orchestrate stderr through
+    if orchestrate_result.stderr:
+        print(orchestrate_result.stderr, end="", file=sys.stderr)
+
+    # Inject timing into output JSON
+    pipeline_elapsed = round(time.monotonic() - pipeline_t0, 2)
+    try:
+        output = json.loads(orchestrate_result.stdout)
+        output["_timing"] = {
+            "pipeline_total_s": pipeline_elapsed,
+            "documents": doc_timings,
+            "embedding": embed_timing,
+            "query_and_render_s": orchestrate_elapsed,
+        }
+        print(json.dumps(output, indent=2))
+    except (json.JSONDecodeError, ValueError):
+        # If orchestrate output isn't JSON, pass it through as-is
+        print(orchestrate_result.stdout, end="")
 
 
 if __name__ == "__main__":
