@@ -134,7 +134,7 @@ def caption_image_roi(
         prediction = muna.beta.predictions.remote.create(
             tag="@salesforce/blip-image-captioning-base",
             inputs={"image": cropped},
-            acceleration="remote_a100",
+            acceleration="remote_a10",
         )
         if prediction.results and prediction.results[0]:
             return prediction.results[0]
