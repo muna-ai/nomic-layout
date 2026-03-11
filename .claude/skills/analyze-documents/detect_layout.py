@@ -9,6 +9,7 @@ and writes results to a JSON file.
 """
 
 import json
+import platform
 import sys
 import time
 from pathlib import Path
@@ -22,10 +23,18 @@ DPI = 200
 OCR_PAD_PX = 20  # Padding around ROI crops for better OCR accuracy
 CAPTION_LABELS = {"Picture"}  # ROI labels eligible for BLIP captioning
 
+# Detect if running on Apple Silicon
+def _is_apple_silicon() -> bool:
+    """Check if running on Apple Silicon (ARM64 Mac)."""
+    return platform.system() == "Darwin" and platform.machine() == "arm64"
+
+# Select the appropriate predictor tag
+LAYOUT_PREDICTOR_TAG = "@nomic/nomic-layout-v1-mlx" if _is_apple_silicon() else "@nomic/nomic-layout-v1"
+
 
 def detect_layout(muna: Muna, image: Image.Image) -> list[dict]:
     prediction = muna.predictions.create(
-        tag="@nomic/nomic-layout-v1",
+        tag=LAYOUT_PREDICTOR_TAG,
         inputs={
             "image": image,
             "picture_threshold": DEFAULT_THRESHOLD,
@@ -146,6 +155,8 @@ def process_pdf(pdf_path: Path) -> tuple[list[dict], int, dict]:
     total_rois = 0
     ocr_calls = 0
     blip_calls = 0
+
+    print(f"  Using predictor: {LAYOUT_PREDICTOR_TAG}", file=sys.stderr)
 
     for page_idx in range(num_pages):
         page = doc[page_idx]
