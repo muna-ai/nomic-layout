@@ -1,0 +1,183 @@
+Layout Detection Benchmark
+Predictor: @nomic/nomic-layout-v1
+============================================================
+
+Processing: maine-coastal-wildlife.pdf
+  Predictor: @nomic/nomic-layout-v1
+  Page 1/10... 1.57s (6 ROIs)
+  Page 2/10... 0.37s (10 ROIs)
+  Page 3/10... 0.38s (9 ROIs)
+  Page 4/10... 0.36s (49 ROIs)
+  Page 5/10... 0.37s (60 ROIs)
+  Page 6/10... 0.37s (3 ROIs)
+  Page 7/10... 0.35s (10 ROIs)
+  Page 8/10... 0.36s (13 ROIs)
+  Page 9/10... 0.37s (11 ROIs)
+  Page 10/10... 0.37s (13 ROIs)
+
+Processing: rachel-carson-wildlife.pdf
+  Predictor: @nomic/nomic-layout-v1
+MuPDF error: format error: No common ancestor in structure tree
+
+  Page 1/8... 1.12s (5 ROIs)
+  Page 2/8... 0.35s (8 ROIs)
+  Page 3/8... 0.35s (11 ROIs)
+  Page 4/8... 0.34s (10 ROIs)
+  Page 5/8... 0.36s (1 ROIs)
+  Page 6/8... 0.35s (10 ROIs)
+  Page 7/8... 0.36s (4 ROIs)
+  Page 8/8... 0.38s (6 ROIs)
+
+Processing: seney-wildlife.pdf
+  Predictor: @nomic/nomic-layout-v1
+  Page 1/6... 1.10s (4 ROIs)
+  Page 2/6... 0.37s (1 ROIs)
+MuPDF error: format error: No common ancestor in structure tree
+
+  Page 3/6... 0.41s (28 ROIs)
+  Page 4/6... 0.36s (20 ROIs)
+  Page 5/6... 0.38s (24 ROIs)
+MuPDF error: format error: No common ancestor in structure tree
+
+  Page 6/6... 0.36s (32 ROIs)
+
+Processing: wwf-living-planet-2022.pdf
+  Predictor: @nomic/nomic-layout-v1
+  Page 1/118... 1.16s (7 ROIs)
+  Page 2/118... 0.38s (8 ROIs)
+  Page 3/118... 0.36s (3 ROIs)
+  Page 4/118... 0.39s (9 ROIs)
+  Page 5/118... 0.37s (2 ROIs)
+  Page 6/118... 0.37s (7 ROIs)
+  Page 7/118... 0.36s (5 ROIs)
+  Page 8/118... 0.35s (7 ROIs)
+  Page 9/118... 0.34s (5 ROIs)
+  Page 10/118... 0.36s (8 ROIs)
+  Page 11/118... 0.35s (1 ROIs)
+  Page 12/118... 0.37s (8 ROIs)
+  Page 13/118... 0.36s (5 ROIs)
+  Page 14/118... 0.36s (28 ROIs)
+  Page 15/118... 0.36s (1 ROIs)
+  Page 16/118... 0.37s (6 ROIs)
+  Page 17/118... 0.37s (0 ROIs)
+  Page 18/118... 0.36s (6 ROIs)
+  Page 19/118... 0.37s (3 ROIs)
+  Page 20/118... 0.38s (6 ROIs)
+  Page 21/118... 0.37s (5 ROIs)
+  Page 22/118... 0.38s (5 ROIs)
+  Page 23/118... 0.35s (0 ROIs)
+  Page 24/118... 0.38s (7 ROIs)
+  Page 25/118... 0.38s (2 ROIs)
+  Page 26/118... 0.37s (6 ROIs)
+  Page 27/118... 0.37s (4 ROIs)
+  Page 28/118... 0.38s (7 ROIs)
+  Page 29/118... 0.37s (3 ROIs)
+  Page 30/118... 0.37s (8 ROIs)
+  Page 31/118... 0.39s (1 ROIs)
+  Page 32/118... 0.37s (4 ROIs)
+  Page 33/118... 0.36s (1 ROIs)
+  Page 34/118... 0.38s (10 ROIs)
+  Page 35/118... 0.38s (8 ROIs)
+  Page 36/118... 0.38s (7 ROIs)
+MuPDF error: format error: No common ancestor in structure tree
+
+  Page 37/118... 0.38s (6 ROIs)
+  Page 38/118... 0.38s (7 ROIs)
+  Page 39/118... 0.37s (8 ROIs)
+  Page 40/118... 0.37s (8 ROIs)
+  Page 41/118... 0.36s (6 ROIs)
+  Page 42/118... 0.37s (5 ROIs)
+  Page 43/118... 0.39s (5 ROIs)
+MuPDF error: format error: No common ancestor in structure tree
+
+  Page 44/118... 0.36s (9 ROIs)
+  Page 45/118... 0.36s (1 ROIs)
+  Page 46/118... 0.39s (4 ROIs)
+  Page 47/118... 0.36s (4 ROIs)
+  Page 48/118... 0.37s (5 ROIs)
+  Page 49/118... 0.37s (4 ROIs)
+  Page 50/118... 0.37s (8 ROIs)
+  Page 51/118... 0.39s (0 ROIs)
+  Page 52/118... 0.37s (8 ROIs)
+  Page 53/118... 0.38s (4 ROIs)
+  Page 54/118... 0.37s (7 ROIs)
+  Page 55/118... 0.37s (0 ROIs)
+  Page 56/118... 0.36s (6 ROIs)
+  Page 57/118... 0.36s (0 ROIs)
+  Page 58/118... 0.37s (7 ROIs)
+  Page 59/118... 0.36s (1 ROIs)
+  Page 60/118... 0.37s (3 ROIs)
+  Page 61/118... 0.35s (0 ROIs)
+  Page 62/118... 0.35s (8 ROIs)
+  Page 63/118... 0.36s (5 ROIs)
+  Page 64/118... 0.36s (7 ROIs)
+  Page 65/118... 0.37s (1 ROIs)
+  Page 66/118... 0.36s (9 ROIs)
+  Page 67/118... 0.39s (1 ROIs)
+  Page 68/118... 0.39s (8 ROIs)
+  Page 69/118... 0.37s (10 ROIs)
+  Page 70/118... 0.37s (4 ROIs)
+  Page 71/118... 0.36s (4 ROIs)
+  Page 72/118... 0.36s (8 ROIs)
+  Page 73/118... 0.36s (5 ROIs)
+  Page 74/118... 0.38s (8 ROIs)
+  Page 75/118... 0.38s (5 ROIs)
+  Page 76/118... 0.36s (7 ROIs)
+  Page 77/118... 0.37s (2 ROIs)
+  Page 78/118... 0.38s (10 ROIs)
+  Page 79/118... 0.38s (7 ROIs)
+  Page 80/118... 0.38s (7 ROIs)
+  Page 81/118... 0.38s (4 ROIs)
+  Page 82/118... 0.38s (6 ROIs)
+  Page 83/118... 0.41s (0 ROIs)
+MuPDF error: format error: No common ancestor in structure tree
+
+  Page 84/118... 0.43s (5 ROIs)
+  Page 85/118... 0.42s (5 ROIs)
+  Page 86/118... 0.38s (6 ROIs)
+  Page 87/118... 0.38s (11 ROIs)
+  Page 88/118... 0.39s (8 ROIs)
+  Page 89/118... 0.41s (9 ROIs)
+  Page 90/118... 0.38s (7 ROIs)
+  Page 91/118... 0.38s (1 ROIs)
+  Page 92/118... 0.38s (8 ROIs)
+  Page 93/118... 0.42s (4 ROIs)
+  Page 94/118... 0.40s (9 ROIs)
+  Page 95/118... 0.38s (1 ROIs)
+  Page 96/118... 0.39s (6 ROIs)
+  Page 97/118... 0.40s (5 ROIs)
+  Page 98/118... 0.44s (8 ROIs)
+  Page 99/118... 0.39s (6 ROIs)
+  Page 100/118... 0.37s (8 ROIs)
+  Page 101/118... 0.36s (8 ROIs)
+  Page 102/118... 0.39s (10 ROIs)
+  Page 103/118... 0.37s (4 ROIs)
+  Page 104/118... 0.38s (6 ROIs)
+  Page 105/118... 0.39s (1 ROIs)
+  Page 106/118... 0.35s (16 ROIs)
+  Page 107/118... 0.38s (18 ROIs)
+  Page 108/118... 0.37s (19 ROIs)
+  Page 109/118... 0.38s (18 ROIs)
+  Page 110/118... 0.36s (12 ROIs)
+  Page 111/118... 0.35s (24 ROIs)
+  Page 112/118... 0.36s (6 ROIs)
+  Page 113/118... 0.36s (14 ROIs)
+  Page 114/118... 0.39s (14 ROIs)
+  Page 115/118... 0.36s (20 ROIs)
+  Page 116/118... 0.37s (18 ROIs)
+  Page 117/118... 0.36s (5 ROIs)
+  Page 118/118... 0.36s (5 ROIs)
+
+============================================================
+SUMMARY
+============================================================
+maine-coastal-wildlife.pdf     10 pages    4.86s  (0.486s/page)
+rachel-carson-wildlife.pdf      8 pages    3.62s  (0.453s/page)
+seney-wildlife.pdf              6 pages    2.99s  (0.498s/page)
+wwf-living-planet-2022.pdf     118 pages   44.87s  (0.380s/page)
+------------------------------------------------------------
+TOTAL                          142 pages   56.34s  (0.397s/page)
+Total ROIs detected: 1118
+Pipeline total: 64.25s
+
+Results saved to: /tmp/layout_benchmark_nomic_nomic-layout-v1.json
