@@ -1,0 +1,48 @@
+# Layout Detection Benchmark: MLX vs ONNX
+
+Comparison of layout detection performance on macOS Apple Silicon (M3 Max) using remote Muna predictors.
+
+## Running the Benchmark
+
+```bash
+# Benchmark MLX predictor
+python3 benchmarks/benchmark_layout.py "@nomic/nomic-layout-v1-mlx" "test-docs-images"
+
+# Benchmark ONNX predictor
+python3 benchmarks/benchmark_layout.py "@nomic/nomic-layout-v1" "test-docs-images"
+```
+
+## Full Benchmark Results (221 pages total)
+
+| Document                     | Pages | ONNX    | MLX     | Speedup |
+|------------------------------|-------|---------|---------|---------|
+| **Wildlife/Nature Documents**                                      |
+| maine-coastal-wildlife.pdf   | 10    | 16.66s  | 2.33s   | 7.2x    |
+| rachel-carson-wildlife.pdf   | 8     | 6.48s   | 1.96s   | 3.3x    |
+| seney-wildlife.pdf           | 6     | 4.93s   | 1.66s   | 3.0x    |
+| wwf-living-planet-2022.pdf   | 118   | 85.74s  | 20.97s  | 4.1x    |
+| **Subtotal (images)**        | **142** | **113.81s** | **26.92s** | **4.2x** |
+| **Technical Drawings**                                             |
+| NIST-Plumbing-Drawings.pdf   | 62    | 57.80s  | 18.99s  | 3.0x    |
+| Reading-PA-HVAC-Bid-Draw.pdf | 17    | 15.21s  | 5.02s   | 3.0x    |
+| **Subtotal (complex)**       | **79**  | **73.01s** | **24.01s** | **3.0x** |
+| **TOTAL**                    | **221** | **186.82s** | **50.93s** | **3.7x ⚡** |
+
+## Summary Statistics
+
+| Predictor   | Total Time  | Avg per page | Pages/sec |
+|-------------|-------------|--------------|-----------|
+| ONNX        | 186.82s     | 0.845s       | 1.18      |
+| MLX         | 50.93s      | 0.230s       | 4.34      |
+| Improvement | 3.7x faster | 3.7x faster  | 3.7x faster |
+
+## Key Findings
+
+- MLX processes **221 pages in 51 seconds** vs ONNX's 187 seconds
+- MLX achieves **4.34 pages/second** vs ONNX's 1.18 pages/second
+- Speedup varies by document type: **7.2x** (best) to **3.0x** (worst)
+- Average speedup: **3.7x faster** across all document types
+- Total time saved: **135.89 seconds** (2 minutes 16 seconds) on this dataset
+- Both predictors run remotely on Muna's infrastructure
+- MLX predictor shows best performance on wildlife/nature documents (4.2x average)
+- Technical drawings show consistent 3.0x speedup
