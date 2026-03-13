@@ -45,6 +45,7 @@ def main():
     parser.add_argument("--top-k", type=int, default=10, help="Number of results (default: 10)")
     parser.add_argument("--min-score", type=float, default=0.0, help="Minimum similarity score (default: 0.0)")
     parser.add_argument("--rebuild", action="store_true", help="Force re-index all documents")
+    parser.add_argument("--blip-remote", action="store_true", help="Run BLIP image captioning on remote A100 GPU")
     args = parser.parse_args()
 
     directory = Path(args.directory).resolve()
@@ -91,10 +92,10 @@ def _pipeline(python, directory, tmp_dir, args):
         rois_json = tmp_dir / f"{stem}_rois.json"
 
         print(f"Indexing: {doc_name}", file=sys.stderr)
-        result = _run(
-            [python, str(SKILL_DIR / "detect_layout.py"), str(doc_path), str(rois_json)],
-            check=False,
-        )
+        detect_cmd = [python, str(SKILL_DIR / "detect_layout.py"), str(doc_path), str(rois_json)]
+        if args.blip_remote:
+            detect_cmd.append("--blip-remote")
+        result = _run(detect_cmd, check=False)
         if result.returncode == 0:
             indexed_rois_files.append(rois_json)
         else:

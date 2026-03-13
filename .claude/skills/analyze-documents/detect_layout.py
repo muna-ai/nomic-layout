@@ -117,6 +117,7 @@ def caption_image_roi(
     muna: Muna,
     image: Image.Image,
     detection: dict,
+    blip_remote: bool = False,
 ) -> str:
     """Generate a text caption for an image ROI using BLIP."""
     w, h = image.size
@@ -131,11 +132,17 @@ def caption_image_roi(
         min(h, int(y_max * h)),
     ))
     try:
-        prediction = muna.beta.predictions.remote.create(
-            tag="@salesforce/blip-image-captioning-base",
-            inputs={"image": cropped},
-            acceleration="remote_a10",
-        )
+        if blip_remote:
+            prediction = muna.beta.predictions.remote.create(
+                tag="@salesforce/blip-image-captioning-base",
+                inputs={"image": cropped},
+                acceleration="remote_a100",
+            )
+        else:
+            prediction = muna.predictions.create(
+                tag="@salesforce/blip-image-captioning-base",
+                inputs={"image": cropped},
+            )
         if prediction.results and prediction.results[0]:
             return prediction.results[0]
     except Exception as e:
@@ -143,7 +150,7 @@ def caption_image_roi(
     return ""
 
 
-def process_pdf(pdf_path: Path) -> tuple[list[dict], int, dict]:
+def process_pdf(pdf_path: Path, blip_remote: bool = False) -> tuple[list[dict], int, dict]:
     muna = Muna()
     doc = pymupdf.open(str(pdf_path))
     num_pages = len(doc)
@@ -187,7 +194,7 @@ def process_pdf(pdf_path: Path) -> tuple[list[dict], int, dict]:
             # For Picture ROIs, always run BLIP captioning and merge with OCR text
             if label in CAPTION_LABELS:
                 t0 = time.monotonic()
-                caption = caption_image_roi(muna, image, det)
+                caption = caption_image_roi(muna, image, det, blip_remote=blip_remote)
                 blip_times.append(time.monotonic() - t0)
                 blip_calls += 1
                 if caption:
@@ -233,8 +240,9 @@ def process_pdf(pdf_path: Path) -> tuple[list[dict], int, dict]:
 if __name__ == "__main__":
     pdf_path = Path(sys.argv[1])
     output_path = Path(sys.argv[2])
+    blip_remote = "--blip-remote" in sys.argv
 
-    records, num_pages, timing = process_pdf(pdf_path)
+    records, num_pages, timing = process_pdf(pdf_path, blip_remote=blip_remote)
     output_path.write_text(json.dumps({
         "records": records,
         "num_pages": num_pages,

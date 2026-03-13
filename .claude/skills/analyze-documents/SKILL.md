@@ -17,6 +17,7 @@ Optional flags:
   --top-k N           Number of results to return (default: 10)
   --min-score F       Minimum similarity score to include a result, 0.0-1.0 (default: 0.0, no filtering)
   --rebuild           Force re-index all documents from scratch
+  --blip-remote       Run BLIP image captioning on remote A100 GPU (faster if no local GPU)
 
 If you get an ImportError, install missing packages with:
   pip install muna pymupdf lancedb pyarrow Pillow
@@ -24,7 +25,7 @@ If you get an ImportError, install missing packages with:
 The tool indexes documents by:
 1. Detecting layout regions (text, tables, headers, pictures, etc.) on every page using nomic-layout-v1
 2. Extracting text from each region via PyMuPDF with RapidOCR (via Muna) fallback
-3. Captioning picture regions with BLIP (via Muna remote A100) and merging captions with any OCR text, so images are searchable by their visual content
+3. Captioning picture regions with BLIP and merging captions with any OCR text, so images are searchable by their visual content (use --blip-remote to run on A100 GPU)
 4. Embedding all extracted text (including image captions) with nomic-embed-text-v1.5 into a LanceDB vector database
 5. Caching the index so subsequent queries are fast (only new/changed files are re-indexed)
 
