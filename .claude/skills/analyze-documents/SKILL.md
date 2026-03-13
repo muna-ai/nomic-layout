@@ -22,10 +22,11 @@ If you get an ImportError, install missing packages with:
   pip install muna pymupdf lancedb pyarrow Pillow
 
 The tool indexes documents by:
-1. Detecting layout regions (text, tables, headers, pictures, etc.) on every page
+1. Detecting layout regions (text, tables, headers, pictures, etc.) on every page using nomic-layout-v1
 2. Extracting text from each region via PyMuPDF with RapidOCR (via Muna) fallback
-3. Embedding extracted text with nomic-embed-text-v1.5 into a LanceDB vector database
-4. Caching the index so subsequent queries are fast (only new/changed files are re-indexed)
+3. Captioning picture regions with BLIP (via Muna remote A100) and merging captions with any OCR text, so images are searchable by their visual content
+4. Embedding all extracted text (including image captions) with nomic-embed-text-v1.5 into a LanceDB vector database
+5. Caching the index so subsequent queries are fast (only new/changed files are re-indexed)
 
 The tool outputs JSON with matching document regions. Each result includes: document_name, page_number, roi_label, text, similarity_score, and bounding_box. It also saves annotated page images highlighting the matched regions and includes their file paths in the output.
 
