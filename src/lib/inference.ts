@@ -181,3 +181,10 @@ export async function captionImage({
     throw new Error(prediction.error);
   return prediction.results![0] as string;
 }
+
+// Pin function names so they survive minification (used by worker RPC dispatch).
+Object.defineProperty(preloadModels, "name", { value: "preloadModels", writable: false });
+Object.defineProperty(createEmbeddings, "name", { value: "createEmbeddings", writable: false });
+Object.defineProperty(parseLayout, "name", { value: "parseLayout", writable: false });
+Object.defineProperty(recognizeTexts, "name", { value: "recognizeTexts", writable: false });
+Object.defineProperty(captionImage, "name", { value: "captionImage", writable: false });
