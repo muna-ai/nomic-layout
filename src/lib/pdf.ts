@@ -98,7 +98,8 @@ export function renderPdfPage(
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx)
+      return;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     const task = page.render({ canvas, canvasContext: ctx, viewport });

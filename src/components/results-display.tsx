@@ -4,15 +4,17 @@ import { Message, MessageContent } from "@/components/ai-elements/message"
 import { ResultCard } from "@/components/result-card"
 import type { SearchResult } from "@/lib/vector-store"
 
+export interface ResultsDisplayProps {
+  results: SearchResult[];
+  result: SearchResult | null;
+  onShowPreview: (r: SearchResult | null) => void;
+}
+
 export function ResultsDisplay({
   results,
-  selectedResult,
-  onSelectResult,
-}: {
-  results: SearchResult[];
-  selectedResult: SearchResult | null;
-  onSelectResult: (r: SearchResult) => void;
-}) {
+  result,
+  onShowPreview,
+}: ResultsDisplayProps) {
   if (results.length === 0) {
     return (
       <Message from="assistant">
@@ -36,12 +38,12 @@ export function ResultsDisplay({
               key={`${r.documentName}-${r.pageNumber}-${r.roiIndex}-${i}`}
               result={r}
               isSelected={
-                selectedResult !== null &&
-                selectedResult.documentName === r.documentName &&
-                selectedResult.pageNumber === r.pageNumber &&
-                selectedResult.roiIndex === r.roiIndex
+                result !== null &&
+                result.documentName === r.documentName &&
+                result.pageNumber === r.pageNumber &&
+                result.roiIndex === r.roiIndex
               }
-              onSelect={() => onSelectResult(r)}
+              onSelect={() => onShowPreview(r)}
             />
           ))}
         </div>

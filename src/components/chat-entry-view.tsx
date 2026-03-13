@@ -2,28 +2,23 @@
 
 import { FileTextIcon } from "lucide-react"
 import type { SearchResult } from "@/lib/vector-store"
+import type { ChatEntry } from "@/hooks/use-search-chat"
 import { Message, MessageContent } from "@/components/ai-elements/message"
 import { Reasoning, ReasoningTrigger } from "@/components/ai-elements/reasoning"
 import { Shimmer } from "@/components/ai-elements/shimmer"
 import { ResultsDisplay } from "@/components/results-display"
 
-export interface ChatEntry {
-  id: string;
-  query: string;
-  fileNames?: string[];
-  results?: SearchResult[];
-  status?: string;
+export interface ChatEntryViewProps {
+  entry: ChatEntry;
+  result: SearchResult | null;
+  onShowPreview: (r: SearchResult | null) => void;
 }
 
 export function ChatEntryView({
   entry,
-  selectedResult,
-  onSelectResult,
-}: {
-  entry: ChatEntry;
-  selectedResult: SearchResult | null;
-  onSelectResult: (r: SearchResult) => void;
-}) {
+  result,
+  onShowPreview,
+}: ChatEntryViewProps) {
   return (
     <div className="flex flex-col gap-6">
       <Message from="user">
@@ -60,8 +55,8 @@ export function ChatEntryView({
       {entry.results && (
         <ResultsDisplay
           results={entry.results}
-          selectedResult={selectedResult}
-          onSelectResult={onSelectResult}
+          result={result}
+          onShowPreview={onShowPreview}
         />
       )}
     </div>
