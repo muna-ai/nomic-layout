@@ -13,20 +13,27 @@ export function AttachmentsDisplay() {
       {attachments.files.map((attachment) => (
         <div
           key={attachment.id}
-          className="group relative flex items-center gap-3 rounded-lg border border-border/80 bg-card px-3 py-2 ring-1 ring-border/30"
+          className="group relative flex items-center rounded-lg border border-border/80 bg-neutral-800 ring-1 ring-border/30"
         >
-          <div className="size-12 shrink-0 overflow-hidden rounded bg-muted">
-            {attachment.url && attachment.mediaType === "application/pdf" ? (
-              <PdfThumbnail url={attachment.url} />
-            ) : (
-              <div className="flex size-full items-center justify-center">
-                <FileTextIcon className="size-5 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-          <span className="max-w-[160px] truncate text-sm text-foreground">
-            {attachment.filename}
-          </span>
+          <a
+            href={attachment.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/50 rounded-lg"
+          >
+            <div className="size-12 shrink-0 overflow-hidden rounded bg-muted">
+              {attachment.url && attachment.mediaType === "application/pdf" ? (
+                <PdfThumbnail url={attachment.url} />
+              ) : (
+                <div className="flex size-full items-center justify-center">
+                  <FileTextIcon className="size-5 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <span className="max-w-[160px] truncate text-sm text-foreground">
+              {attachment.filename}
+            </span>
+          </a>
           <button
             type="button"
             onClick={() => attachments.remove(attachment.id)}

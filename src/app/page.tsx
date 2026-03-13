@@ -18,12 +18,13 @@ import { AddFilesButton } from "@/components/add-files-button"
 import { AttachmentsDisplay } from "@/components/attachments-display"
 import { ChatEntryView } from "@/components/chat-entry-view"
 import { PdfPreviewPanel } from "@/components/pdf-preview-panel"
+import { PreloadAttachment } from "@/components/preload-attachment"
 
 export default function Home() {
   useEffect(() => { initWorker(); }, []);
   // Documents & text
   const [documents, setDocuments] = useState<File[]>([]);
-  const [text, setText] = useState("");
+  const [text, setText] = useState("How much is the 8GB Raspberry Pi?");
   // Pipeline
   const { pages, status: pdfStatus } = usePdfReader({ documents });
   const { elements, status: parseStatus } = useLayoutParser({ pages });
@@ -98,6 +99,7 @@ export default function Home() {
           multiple
           globalDrop
         >
+          <PreloadAttachment url="/raspberry-5-brief.pdf" />
           <PromptInputHeader>
             <AttachmentsDisplay />
           </PromptInputHeader>
