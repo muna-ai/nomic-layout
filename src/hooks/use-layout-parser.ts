@@ -1,5 +1,5 @@
 import type { Image } from "muna"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { Page } from "@/hooks/use-pdf-reader"
 import { parseLayout, recognizeTexts, captionImage, type LayoutItem } from "@/lib/inference"
 import { extractTextFromRegion, cropImage, isValidText, type TextItem } from "@/lib/pdf"
@@ -18,17 +18,17 @@ export interface UseLayoutParserReturn {
 export function useLayoutParser({ pages }: UseLayoutParserInput): UseLayoutParserReturn {
   // State to track layout elements
   const [elements, setElements] = useState<Element[]>([]);
-  const [processedCount, setProcessedCount] = useState(0);
+  const processedCountRef = useRef(0);
   const [activeStatus, setActiveStatus] = useState<string | null>(null);
-  const hasPending = processedCount < pages.length;
+  const hasPending = processedCountRef.current < pages.length;
   const status = hasPending ? (activeStatus ?? "Preparing...") : null;
-  // Paese layout items
+  // Parse layout items
   useEffect(() => {
-    if (!hasPending)
+    if (processedCountRef.current >= pages.length)
       return;
     let cancelled = false;
     (async () => {
-      const pending = pages.slice(processedCount);
+      const pending = pages.slice(processedCountRef.current);
       for (let pi = 0; pi < pending.length; pi++) {
         if (cancelled)
           return;
@@ -39,11 +39,8 @@ export function useLayoutParser({ pages }: UseLayoutParserInput): UseLayoutParse
         try {
           detections = await postToWorkerThread(parseLayout, { image: page.image });
         } catch (e) {
-          console.warn(
-            `Layout detection failed on page ${page.pageNumber} of ${page.documentName}:`,
-            e
-          );
-          setProcessedCount((c) => c + 1);
+          console.warn(`Layout detection failed on page ${page.pageNumber} of ${page.documentName}:`, e);
+          processedCountRef.current++;
           continue;
         }
         // Extract elements
@@ -53,7 +50,7 @@ export function useLayoutParser({ pages }: UseLayoutParserInput): UseLayoutParse
             return;
           const det = detections[roiIdx];
           if (det.confidence < LAYOUT_THRESHOLD)
-            continue;
+            continue;          
           const text = await extractText(det, roiIdx, page.image, page.textItems);
           if (!text)
             continue;
@@ -74,12 +71,12 @@ export function useLayoutParser({ pages }: UseLayoutParserInput): UseLayoutParse
           return;
         // Append
         setElements((prev) => [...prev, ...pageElements]);
-        setProcessedCount((c) => c + 1);
+        processedCountRef.current++;
       }
       setActiveStatus(null);
     })();
     return () => { cancelled = true; };
-  }, [pages, hasPending, processedCount]);
+  }, [pages]);
   // Return
   return { elements, status };
 }
@@ -110,7 +107,6 @@ async function extractText(
     const ocrResults = await postToWorkerThread(recognizeTexts, { image: cropped });
     if (ocrResults?.length)
       return ocrResults.map((r) => r.text).join(" ").trim();
-
   } catch (e) {
     console.warn(`OCR failed for ROI ${roiIdx}:`, e);
   }

@@ -86,34 +86,9 @@ export function postToWorkerThread<
 }
 
 /**
- * Worker-side helper: dispatch incoming messages to the given module exports.
- * Use with `import * as methods from "./my-module"`.
- *
- * ```ts
- * import * as methods from "./inference";
- * import { workerDispatch } from "./worker-proxy";
- * workerDispatch(methods);
- * ```
+ * Eagerly create the worker so model preloading starts immediately.
+ * Safe to call multiple times — only the first call has an effect.
  */
-export function workerDispatch(
-  methods: Record<string, (...args: any[]) => any>,
-) {
-  self.onmessage = async (e: MessageEvent) => {
-    const { id, method, args } = e.data;
-    const fn = methods[method];
-    if (typeof fn !== "function") {
-      self.postMessage({ id, error: `Unknown method: ${method}` });
-      return;
-    }
-    try {
-      const result = await fn(...args);
-      self.postMessage({ id, result });
-    } catch (err: any) {
-      self.postMessage({
-        id,
-        error: err?.message ?? String(err),
-        stack: err?.stack,
-      });
-    }
-  };
+export function initWorker(): void {
+  getProxy();
 }

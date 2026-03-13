@@ -26,7 +26,7 @@ export function ResultsDisplay({
   }
   return (
     <Message from="assistant">
-      <MessageContent>
+      <MessageContent className="overflow-visible">
         <p className="mb-3 text-sm text-muted-foreground">
           Found {results.length} results
         </p>

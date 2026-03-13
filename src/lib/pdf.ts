@@ -196,7 +196,7 @@ async function getPdfjs() {
   return pdfjs;
 }
 
-const RENDER_SCALE = 2.5;
+const RENDER_SCALE = 1.0;
 const OCR_PAD_FRACTION = 0.02;
 const PREVIEW_SCALE = 2;
 

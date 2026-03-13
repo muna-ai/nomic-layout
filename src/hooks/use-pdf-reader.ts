@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { loadPdf, type PageData } from "@/lib/pdf"
 
 export interface Page extends PageData {
@@ -18,17 +18,17 @@ export interface UsePdfReaderReturn {
 export function usePdfReader({ documents }: UsePdfReaderInput): UsePdfReaderReturn {
   // State to track pages
   const [pages, setPages] = useState<Page[]>([]);
-  const [processedCount, setProcessedCount] = useState(0);
+  const processedCountRef = useRef(0);
   const [activeStatus, setActiveStatus] = useState<string | null>(null);
-  const hasPending = processedCount < documents.length;
+  const hasPending = processedCountRef.current < documents.length;
   const status = hasPending ? (activeStatus ?? "Preparing...") : null;
   // Read pages with pdf.js
   useEffect(() => {
-    if (!hasPending)
+    if (processedCountRef.current >= documents.length)
       return;
     let cancelled = false;
     (async () => {
-      const pending = documents.slice(processedCount);
+      const pending = documents.slice(processedCountRef.current);
       for (const file of pending) {
         if (cancelled) return;
         const pageDataList = await loadPdf(file, (pageNum, total) => {
@@ -43,12 +43,12 @@ export function usePdfReader({ documents }: UsePdfReaderInput): UsePdfReaderRetu
           file,
         }));
         setPages((prev) => [...prev, ...newPages]);
-        setProcessedCount((c) => c + 1);
+        processedCountRef.current++;
       }
       setActiveStatus(null);
     })();
     return () => { cancelled = true; };
-  }, [documents, hasPending, processedCount]);
+  }, [documents]);
   // Return
   return { pages, status };
 }

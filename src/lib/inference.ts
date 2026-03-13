@@ -6,7 +6,8 @@ import {
   type RemoteAcceleration
 } from "muna"
 
-const muna = new Muna({ accessKey: process.env.NEXT_PUBLIC_MUNA_ACCESS_KEY });
+const origin = typeof self !== "undefined" ? self.location.origin : "";
+const muna = new Muna({ url: `${origin}/api/muna` });
 const openai = muna.beta.openai;
 
 export type LayoutItemLabel = 
@@ -110,6 +111,12 @@ export interface CaptionImageInput {
   acceleration?: Acceleration | RemoteAcceleration;
 }
 
+export async function preloadModels(): Promise<void> {
+  try { await parseLayout({ } as any); } catch (err) { }
+  try { await createEmbeddings({ } as any); } catch (err) { }
+  try { await recognizeTexts({ } as any); } catch (err) { }
+}
+
 export async function createEmbeddings({
   texts,
   task,
@@ -117,7 +124,7 @@ export async function createEmbeddings({
 }: CreateEmbeddingsInput): Promise<CreateEmbeddingResponse> {
   const input = task ? texts.map(t => `${task}: ${t}`) : texts;
   const embedding = await openai.embeddings.create({
-    model: "@yusuf/nomic-embed-text-v1.5",
+    model: "@nomic/nomic-embed-text-v1.5-quant",
     input,
     acceleration: acceleration
   });

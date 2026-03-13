@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
-  Conversation, ConversationContent, ConversationScrollButton,
+  Conversation, ConversationContent,
+  ConversationScrollButton,
 } from "@/components/ai-elements/conversation"
 import {
   PromptInput, PromptInputBody, PromptInputFooter, PromptInputHeader,
   type PromptInputMessage, PromptInputSubmit, PromptInputTextarea, PromptInputTools,
-} from "@/components/ai-elements/prompt-input";
+} from "@/components/ai-elements/prompt-input"
 import { AddFilesButton } from "@/components/add-files-button"
 import { AttachmentsDisplay } from "@/components/attachments-display"
 import { ChatEntryView, type ChatEntry } from "@/components/chat-entry-view"
@@ -16,8 +17,10 @@ import { usePdfReader } from "@/hooks/use-pdf-reader"
 import { useLayoutParser } from "@/hooks/use-layout-parser"
 import { useVectorStore } from "@/hooks/use-vector-store"
 import type { SearchResult } from "@/lib/vector-store"
+import { initWorker } from "@/lib/worker-proxy"
 
 export default function Home() {
+  useEffect(() => { initWorker(); }, []);
   const [text, setText] = useState("");
   const [documents, setDocuments] = useState<File[]>([]);
   const [pendingQuery, setPendingQuery] = useState<string | null>(null);
@@ -123,14 +126,13 @@ export default function Home() {
 
     setPendingQuery(query);
   }, [indexSize]);
-
   // Build a map of File objects for the preview panel
   const pdfFileMap = new Map<string, File>();
-  for (const doc of documents) pdfFileMap.set(doc.name, doc);
-
+  for (const doc of documents)
+    pdfFileMap.set(doc.name, doc);
   const hasEntries = entries.length > 0;
   const showPanel = selectedResult !== null;
-
+  // Render
   return (
     <div className="flex h-svh flex-col bg-background">
       <div className={`flex flex-1 min-h-0 ${showPanel ? "flex-row" : ""}`}>
@@ -150,10 +152,13 @@ export default function Home() {
               <ConversationScrollButton />
             </Conversation>
           ) : (
-            <div className="flex flex-1 items-center justify-center">
-              <h1 className="mb-4 text-[28px] font-normal text-foreground/80">
+            <div className="flex flex-1 flex-col items-center justify-center">
+              <h1 className="mb-2 text-[28px] font-normal text-foreground/80">
                 What would you like to find?
               </h1>
+              <p className="text-sm text-muted-foreground/60">
+                Nomic Layout v1, powered by Muna.
+              </p>
             </div>
           )}
         </div>
@@ -190,7 +195,7 @@ export default function Home() {
                   ? "Ask a follow-up or attach more PDFs"
                   : "Ask anything"
               }
-              className="min-h-[44px] px-8 py-3 text-[15px]"
+              className="min-h-[44px] px-8 py-3 text-base"
             />
           </PromptInputBody>
           <PromptInputFooter className="px-5">

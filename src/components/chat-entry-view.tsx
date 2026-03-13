@@ -29,7 +29,9 @@ export function ChatEntryView({
       <Message from="user">
         <MessageContent>
           <div className="flex flex-col gap-1">
-            <p className="text-sm">{entry.query}</p>
+            <p>
+              {entry.query}
+            </p>
             {entry.fileNames && entry.fileNames.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {entry.fileNames.map((name, i) => (

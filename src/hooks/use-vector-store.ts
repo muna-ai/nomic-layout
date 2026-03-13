@@ -16,17 +16,17 @@ export interface UseVectorStoreReturn {
 export function useVectorStore({ elements }: UseVectorStoreInput): UseVectorStoreReturn {
   // Vector store state
   const storeRef = useRef(new VectorStore());
-  const [processedCount, setProcessedCount] = useState(0);
+  const processedCountRef = useRef(0);
   const [activeStatus, setActiveStatus] = useState<string | null>(null);
-  const hasPending = processedCount < elements.length;
+  const hasPending = processedCountRef.current < elements.length;
   const status = hasPending ? (activeStatus ?? "Preparing...") : null;
   // Embedding
   useEffect(() => {
-    if (!hasPending)
+    if (processedCountRef.current >= elements.length)
       return;
     let cancelled = false;
     (async () => {
-      const pending = elements.slice(processedCount);
+      const pending = elements.slice(processedCountRef.current);
       const texts = pending.map((e) => e.text);
       const allVectors: number[][] = [];
       const numChunks = Math.ceil(texts.length / EMBEDDING_BATCH_SIZE);
@@ -46,11 +46,11 @@ export function useVectorStore({ elements }: UseVectorStoreInput): UseVectorStor
       if (cancelled)
         return;
       storeRef.current.add(pending, allVectors);
-      setProcessedCount(elements.length);
+      processedCountRef.current = elements.length;
       setActiveStatus(null);
     })();
     return () => { cancelled = true; };
-  }, [elements, hasPending, processedCount]);
+  }, [elements]);
   // Search store handler
   const searchStore = useCallback(
     async (query: string, topK: number = DEFAULT_TOP_K): Promise<SearchResult[]> => {
@@ -67,5 +67,5 @@ export function useVectorStore({ elements }: UseVectorStoreInput): UseVectorStor
   return { searchStore, status, indexSize: storeRef.current.size };
 }
 
-const EMBEDDING_BATCH_SIZE = 10;
+const EMBEDDING_BATCH_SIZE = 4;
 const DEFAULT_TOP_K = 10;
