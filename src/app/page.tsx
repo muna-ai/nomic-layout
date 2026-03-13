@@ -46,8 +46,8 @@ export default function Home() {
   // Render
   return (
     <div className="flex h-svh flex-col bg-background">
-      <div className={`flex flex-1 min-h-0 ${showPanel ? "flex-row" : ""}`}>
-        <div className={`flex flex-col min-h-0 ${showPanel ? "w-[60%] min-w-0" : "flex-1"}`}>
+      <div className="relative flex flex-1 min-h-0 flex-row">
+        <div className={`flex flex-col min-h-0 min-w-0 transition-all duration-300 ease-in-out ${showPanel ? "w-[60%]" : "w-full"}`}>
           {entries.length > 0 ? (
             <Conversation className="flex-1">
               <ConversationContent className="mx-auto w-full max-w-[48rem] gap-6 pb-4 pt-8">
@@ -67,26 +67,30 @@ export default function Home() {
               <h1 className="mb-2 text-[28px] font-normal text-foreground/80">
                 What would you like to find?
               </h1>
-              <p className="text-sm text-muted-foreground/60">
-                <a href="https://huggingface.co/nomic-ai/nomic-layout-v1" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Nomic Layout v1</a>, powered by <a href="https://muna.ai" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Muna</a>.
+              <p className="max-w-md text-center text-sm text-muted-foreground/60">
+                <a href="https://huggingface.co/nomic-ai/nomic-layout-v1" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Nomic Layout v1</a>{" "}
+                intelligently parses elements in complex documents, for downstream processing. 
+                <br />
+                <br />
+                Layout parsing, text recognition (OCR), and embeddings all run locally in this browser. Image 
+                captioning runs on cloud GPUs. All inference is powered by <a href="https://muna.ai" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Muna</a>.
               </p>
             </div>
           )}
         </div>
 
-        {
-          showPanel && result &&
-          <div className="flex w-[40%] min-w-0 flex-col min-h-0">
+        <div className={`absolute inset-y-0 right-0 w-[40%] transition-transform duration-300 ease-in-out ${showPanel ? "translate-x-0" : "translate-x-full"}`}>
+          {result && (
             <PdfPreviewPanel
               result={result}
               file={pdfFileMap.get(result.documentName)}
               onClose={() => showResultPreview(null)}
             />
-          </div>
-        }
+          )}
+        </div>
       </div>
 
-      <div className={`shrink-0 px-4 pb-4 ${showPanel ? "mx-0 w-[60%]" : "mx-auto w-full max-w-[48rem]"}`}>
+      <div className={`shrink-0 px-4 pb-4 transition-all duration-300 ease-in-out ${showPanel ? "mx-0 w-[60%]" : "mx-auto w-full max-w-[48rem]"}`}>
         <PromptInput
           onSubmit={(message) => { setText(""); submit(message); }}
           className="w-full"
