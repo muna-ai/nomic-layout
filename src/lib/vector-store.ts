@@ -1,8 +1,10 @@
-export interface ROIRecord {
+import type { LayoutItemLabel } from "./inference"
+
+export interface Element {
   documentName: string;
   pageNumber: number;
   roiIndex: number;
-  label: string;
+  type: LayoutItemLabel;
   text: string;
   xMin: number;
   yMin: number;
@@ -11,37 +13,14 @@ export interface ROIRecord {
   confidence: number;
 }
 
-interface StoredRecord extends ROIRecord {
-  vector: Float32Array;
-}
-
-export interface SearchResult extends ROIRecord {
+export interface SearchResult extends Element {
   similarityScore: number;
-}
-
-function dotProduct(a: Float32Array, b: Float32Array): number {
-  let sum = 0;
-  for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
-  return sum;
-}
-
-function magnitude(v: Float32Array): number {
-  let sum = 0;
-  for (let i = 0; i < v.length; i++) sum += v[i] * v[i];
-  return Math.sqrt(sum);
-}
-
-function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  const magA = magnitude(a);
-  const magB = magnitude(b);
-  if (magA === 0 || magB === 0) return 0;
-  return dotProduct(a, b) / (magA * magB);
 }
 
 export class VectorStore {
   private records: StoredRecord[] = [];
 
-  add(records: ROIRecord[], vectors: number[][]): void {
+  add(records: Element[], vectors: number[][]): void {
     for (let i = 0; i < records.length; i++) {
       this.records.push({
         ...records[i],
@@ -70,4 +49,27 @@ export class VectorStore {
   clear(): void {
     this.records = [];
   }
+}
+
+function dotProduct(a: Float32Array, b: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+  return sum;
+}
+
+function magnitude(v: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < v.length; i++) sum += v[i] * v[i];
+  return Math.sqrt(sum);
+}
+
+function cosineSimilarity(a: Float32Array, b: Float32Array): number {
+  const magA = magnitude(a);
+  const magB = magnitude(b);
+  if (magA === 0 || magB === 0) return 0;
+  return dotProduct(a, b) / (magA * magB);
+}
+
+interface StoredRecord extends Element {
+  vector: Float32Array;
 }

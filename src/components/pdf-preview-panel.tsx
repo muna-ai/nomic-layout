@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { renderPdfPage } from "@/lib/pdf";
-import type { SearchResult } from "@/lib/vector-store";
-import { XIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { renderPdfPage } from "@/lib/pdf"
+import type { SearchResult } from "@/lib/vector-store"
+import { XIcon } from "lucide-react"
+import { useEffect, useRef } from "react"
 
 const LABEL_BORDER_COLORS: Record<string, string> = {
   Title: "rgb(239 68 68)",
@@ -31,7 +31,7 @@ export function PdfPreviewPanel({
   onClose: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const borderColor = getLabelColor(result.label);
+  const borderColor = getLabelColor(result.type);
 
   useEffect(() => {
     if (!file || !canvasRef.current) return;

@@ -19,7 +19,7 @@
     "cmdk": "^1.1.1",
     "lucide-react": "^0.577.0",
     "motion": "^12.36.0",
-    "muna": "^0.0.53",
+    "muna": "file:../muna-js",
     "nanoid": "^5.1.6",
     "next": "16.1.6",
     "pdfjs-dist": "^5.5.207",

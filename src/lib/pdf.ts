@@ -1,20 +1,4 @@
-import type { Image } from "muna";
-
-const RENDER_SCALE = 2.5;
-const OCR_PAD_FRACTION = 0.02;
-
-let pdfjsLoaded: typeof import("pdfjs-dist") | null = null;
-
-async function getPdfjs() {
-  if (pdfjsLoaded) return pdfjsLoaded;
-  const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
-  pdfjsLoaded = pdfjs;
-  return pdfjs;
-}
+import type { Image } from "muna"
 
 export interface PageData {
   pageNumber: number;
@@ -29,6 +13,11 @@ export interface TextItem {
   y: number;
   width: number;
   height: number;
+}
+
+export interface RenderPdfPageResult {
+  cancel: () => void;
+  promise: Promise<void>;
 }
 
 /**
@@ -49,11 +38,13 @@ export async function loadPdf(
     onProgress?.(i, total);
     const page = await doc.getPage(i);
     const viewport = page.getViewport({ scale: RENDER_SCALE });
-
     const canvas = new OffscreenCanvas(viewport.width, viewport.height);
     const ctx = canvas.getContext("2d")!;
-    await page.render({ canvasContext: ctx as any, viewport }).promise;
-
+    await page.render({
+      canvas: canvas as any,
+      canvasContext: ctx as any,
+      viewport
+    }).promise;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const image: Image = {
       data: imageData.data,
@@ -61,11 +52,11 @@ export async function loadPdf(
       height: canvas.height,
       channels: 4,
     };
-
     const textContent = await page.getTextContent();
     const textItems: TextItem[] = [];
     for (const item of textContent.items) {
-      if (!("str" in item) || !item.str.trim()) continue;
+      if (!("str" in item) || !item.str.trim())
+        continue;
       const tx = item.transform[4];
       const ty = item.transform[5];
       const w = item.width;
@@ -78,20 +69,11 @@ export async function loadPdf(
         height: h / viewport.height * RENDER_SCALE,
       });
     }
-
     pages.push({ pageNumber: i, image, textItems });
     page.cleanup();
   }
-
   doc.destroy();
   return pages;
-}
-
-const PREVIEW_SCALE = 2;
-
-export interface RenderPdfPageResult {
-  cancel: () => void;
-  promise: Promise<void>;
 }
 
 /**
@@ -119,7 +101,7 @@ export function renderPdfPage(
     if (!ctx) return;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const task = page.render({ canvasContext: ctx, viewport });
+    const task = page.render({ canvas, canvasContext: ctx, viewport });
     renderTask = task;
     await task.promise;
     page.cleanup();
@@ -177,26 +159,45 @@ export function cropImage(
   const y1 = Math.min(image.height, Math.ceil((yMax + pad) * image.height));
   const cropW = x1 - x0;
   const cropH = y1 - y0;
-
   const data = new Uint8ClampedArray(cropW * cropH * 4);
   for (let row = 0; row < cropH; row++) {
     const srcOffset = ((y0 + row) * image.width + x0) * 4;
     const dstOffset = row * cropW * 4;
     data.set(image.data.subarray(srcOffset, srcOffset + cropW * 4), dstOffset);
   }
-
   return { data, width: cropW, height: cropH, channels: 4 };
 }
 
 /**
  * Check if text looks like real content vs garbled artifacts.
  */
-export function isGoodText(text: string): boolean {
+export function isValidText(text: string): boolean {
   const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return false;
+  if (words.length === 0)
+    return false;
   const avgLen = words.reduce((s, w) => s + w.length, 0) / words.length;
-  if (avgLen > 15) return false;
+  if (avgLen > 15)
+    return false;
   const alpha = [...text].filter(c => /[a-zA-Z]/.test(c)).length;
-  if (text.length > 0 && alpha / text.length < 0.4) return false;
+  if (text.length > 0 && alpha / text.length < 0.4)
+    return false;
   return true;
 }
+
+async function getPdfjs() {
+  if (pdfjsLoaded)
+    return pdfjsLoaded;
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString();
+  pdfjsLoaded = pdfjs;
+  return pdfjs;
+}
+
+const RENDER_SCALE = 2.5;
+const OCR_PAD_FRACTION = 0.02;
+const PREVIEW_SCALE = 2;
+
+let pdfjsLoaded: typeof import("pdfjs-dist") | null = null;

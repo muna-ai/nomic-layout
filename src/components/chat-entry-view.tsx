@@ -1,12 +1,19 @@
 "use client";
 
-import { Message, MessageContent } from "@/components/ai-elements/message";
-import { Reasoning, ReasoningTrigger } from "@/components/ai-elements/reasoning";
-import { Shimmer } from "@/components/ai-elements/shimmer";
-import { ResultsDisplay } from "@/components/results-display";
-import type { ChatEntry } from "@/hooks/use-document-search";
-import type { SearchResult } from "@/lib/vector-store";
-import { FileTextIcon } from "lucide-react";
+import { FileTextIcon } from "lucide-react"
+import type { SearchResult } from "@/lib/vector-store"
+import { Message, MessageContent } from "@/components/ai-elements/message"
+import { Reasoning, ReasoningTrigger } from "@/components/ai-elements/reasoning"
+import { Shimmer } from "@/components/ai-elements/shimmer"
+import { ResultsDisplay } from "@/components/results-display"
+
+export interface ChatEntry {
+  id: string;
+  query: string;
+  fileNames?: string[];
+  results?: SearchResult[];
+  status?: string;
+}
 
 export function ChatEntryView({
   entry,
@@ -48,9 +55,9 @@ export function ChatEntryView({
           />
         </Reasoning>
       )}
-      {entry.result && (
+      {entry.results && (
         <ResultsDisplay
-          result={entry.result}
+          results={entry.results}
           selectedResult={selectedResult}
           onSelectResult={onSelectResult}
         />

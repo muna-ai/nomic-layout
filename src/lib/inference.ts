@@ -9,6 +9,17 @@ import {
 const muna = new Muna({ accessKey: process.env.NEXT_PUBLIC_MUNA_ACCESS_KEY });
 const openai = muna.beta.openai;
 
+export type LayoutItemLabel = 
+  "Picture"           | 
+  "Page-footer"       |
+  "Page-header"       |
+  "Key-Value Region"  |
+  "List-item"         |
+  "Section-header"    |
+  "Table"             |
+  "Text"              |
+  "Title";
+
 export interface LayoutItem {
   /**
    * Normalized minimum X coordinate.
@@ -29,7 +40,7 @@ export interface LayoutItem {
   /**
    * Layout element label.
    */
-  label: string;
+  label: LayoutItemLabel;
   /**
    * Detection confidence score.
    */

@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import type { SearchResult } from "@/lib/vector-store";
-import { FileTextIcon } from "lucide-react";
+import type { SearchResult } from "@/lib/vector-store"
+import { FileTextIcon } from "lucide-react"
 
 export function ResultCard({
   result,
@@ -31,7 +31,7 @@ export function ResultCard({
         </div>
         <div className="flex items-center gap-1.5">
           <span className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-            {result.label}
+            {result.type}
           </span>
           <span className="text-xs font-medium text-muted-foreground">
             {score}%
