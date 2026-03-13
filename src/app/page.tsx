@@ -157,7 +157,7 @@ export default function Home() {
                 What would you like to find?
               </h1>
               <p className="text-sm text-muted-foreground/60">
-                Nomic Layout v1, powered by Muna.
+                <a href="https://huggingface.co/nomic-ai/nomic-layout-v1" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Nomic Layout v1</a>, powered by <a href="https://muna.ai" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Muna</a>.
               </p>
             </div>
           )}
@@ -193,9 +193,9 @@ export default function Home() {
               placeholder={
                 documents.length > 0
                   ? "Ask a follow-up or attach more PDFs"
-                  : "Ask anything"
+                  : "Upload a PDF and ask anything"
               }
-              className="min-h-[44px] px-8 py-3 text-base"
+              className="min-h-[44px] px-8 py-2 text-base"
             />
           </PromptInputBody>
           <PromptInputFooter className="px-5">
