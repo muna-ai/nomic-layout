@@ -1,6 +1,8 @@
 import * as methods from "./inference"
 
-methods.preloadModels();
+methods.preloadModels((model, status) => {
+  self.postMessage({ type: "preload", model, status });
+});
 
 self.onmessage = async (e: MessageEvent) => {
   const { id, method, args } = e.data;

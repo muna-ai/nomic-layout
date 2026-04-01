@@ -111,10 +111,18 @@ export interface CaptionImageInput {
   acceleration?: Acceleration | RemoteAcceleration;
 }
 
-export async function preloadModels(): Promise<void> {
+export async function preloadModels(
+  onProgress?: (model: string, status: "loading" | "ready") => void
+): Promise<void> {
+  onProgress?.("layout", "loading");
   try { await parseLayout({ } as any); } catch (err) { }
+  onProgress?.("layout", "ready");
+  onProgress?.("embeddings", "loading");
   try { await createEmbeddings({ } as any); } catch (err) { }
+  onProgress?.("embeddings", "ready");
+  onProgress?.("ocr", "loading");
   try { await recognizeTexts({ } as any); } catch (err) { }
+  onProgress?.("ocr", "ready");
 }
 
 export async function createEmbeddings({

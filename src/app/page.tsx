@@ -5,6 +5,7 @@ import { usePdfReader } from "@/hooks/use-pdf-reader"
 import { useLayoutParser } from "@/hooks/use-layout-parser"
 import { useVectorStore } from "@/hooks/use-vector-store"
 import { useSearchChat } from "@/hooks/use-search-chat"
+import { useModelStatus } from "@/hooks/use-model-status"
 import { initWorker } from "@/lib/worker-proxy"
 import {
   Conversation, ConversationContent,
@@ -14,14 +15,19 @@ import {
   PromptInput, PromptInputBody, PromptInputFooter, PromptInputHeader,
   PromptInputSubmit, PromptInputTextarea, PromptInputTools,
 } from "@/components/ai-elements/prompt-input"
+import { cn } from "@/lib/utils"
+import type { PipelinePhase } from "@/hooks/use-search-chat"
 import { AddFilesButton } from "@/components/add-files-button"
+import { PipelineProgress } from "@/components/pipeline-progress"
 import { AttachmentsDisplay } from "@/components/attachments-display"
 import { ChatEntryView } from "@/components/chat-entry-view"
+import { ModelLoadingStatus } from "@/components/model-loading-status"
 import { PdfPreviewPanel } from "@/components/pdf-preview-panel"
 import { PreloadAttachment } from "@/components/preload-attachment"
 
 export default function Home() {
   useEffect(() => { initWorker(); }, []);
+  const modelStatus = useModelStatus();
   // Documents & text
   const [documents, setDocuments] = useState<File[]>([]);
   const [text, setText] = useState("How much is the 8GB Raspberry Pi?");
@@ -43,11 +49,16 @@ export default function Home() {
   const pdfFileMap = new Map<string, File>();
   for (const doc of documents)
     pdfFileMap.set(doc.name, doc);
+  const modelsReady = modelStatus.layout === "ready" && modelStatus.embeddings === "ready" && modelStatus.ocr === "ready";
   const showPanel = result !== null;
+  const lastEntry = entries.length > 0 ? entries[entries.length - 1] : null;
+  const activePhase = lastEntry?.phase ?? null;
+  const activeStatusDetail = lastEntry?.status ?? null;
+  const showPipelinePanel = activePhase !== null && !showPanel;
   // Render
   return (
     <div className="flex h-svh flex-col bg-background">
-      <div className="relative flex flex-1 min-h-0 flex-row">
+      <div className="relative flex flex-1 min-h-0 flex-row overflow-hidden">
         <div className={`flex flex-col min-h-0 min-w-0 transition-all duration-300 ease-in-out ${showPanel ? "w-[60%]" : "w-full"}`}>
           {entries.length > 0 ? (
             <Conversation className="flex-1">
@@ -70,16 +81,32 @@ export default function Home() {
               </h1>
               <p className="max-w-md text-center text-sm text-muted-foreground/60">
                 <a href="https://huggingface.co/nomic-ai/nomic-layout-v1" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Nomic Layout v1</a>{" "}
-                intelligently parses elements in complex documents, for downstream processing. 
-                <br />
-                <br />
-                Layout parsing, text recognition (OCR), and embeddings all run locally in this browser. Image 
-                captioning runs on cloud GPUs. All inference is powered by <a href="https://muna.ai" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Muna</a>.
+                parses document structure, then OCR and embeddings power semantic search.
+                Inference runs locally in your browser, powered by{" "}
+                <a href="https://muna.ai" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-muted-foreground transition">Muna</a>.
               </p>
+              <ModelLoadingStatus modelStatus={modelStatus} />
             </div>
           )}
         </div>
 
+        {/* Pipeline progress — right side */}
+        <div
+          className={cn(
+            "absolute inset-y-0 right-0 hidden items-center pr-10 lg:flex",
+            "transition-all duration-300 ease-in-out",
+            showPipelinePanel
+              ? "opacity-100 translate-x-0"
+              : "opacity-0 translate-x-4 pointer-events-none",
+          )}
+        >
+          <PipelineProgress
+            currentPhase={activePhase ?? ("load-pdf" as PipelinePhase)}
+            statusDetail={activeStatusDetail}
+          />
+        </div>
+
+        {/* PDF preview — right side */}
         <div className={`absolute inset-y-0 right-0 w-[40%] transition-transform duration-300 ease-in-out ${showPanel ? "translate-x-0" : "translate-x-full"}`}>
           {result && (
             <PdfPreviewPanel
@@ -90,7 +117,8 @@ export default function Home() {
           )}
         </div>
       </div>
-
+      
+      {/* Chat box */}
       <div className={`shrink-0 px-4 pb-4 transition-all duration-300 ease-in-out ${showPanel ? "mx-0 w-[60%]" : "mx-auto w-full max-w-[48rem]"}`}>
         <PromptInput
           onSubmit={(message) => { setText(""); submit(message); }}
@@ -121,7 +149,7 @@ export default function Home() {
             </PromptInputTools>
             <PromptInputSubmit
               className="rounded-full"
-              disabled={isProcessing}
+              disabled={isProcessing || !modelsReady}
             />
           </PromptInputFooter>
         </PromptInput>

@@ -58,6 +58,33 @@ export class WorkerProxy {
 // Helpers for wiring up a worker with minimal boilerplate
 // ---------------------------------------------------------------------------
 
+export type ModelLoadStatus = "pending" | "loading" | "ready";
+
+export interface ModelStatusMap {
+  layout: ModelLoadStatus;
+  embeddings: ModelLoadStatus;
+  ocr: ModelLoadStatus;
+}
+
+let currentModelStatus: ModelStatusMap = {
+  layout: "pending",
+  embeddings: "pending",
+  ocr: "pending",
+};
+
+const modelStatusListeners = new Set<(status: ModelStatusMap) => void>();
+
+export function getModelStatus(): ModelStatusMap {
+  return { ...currentModelStatus };
+}
+
+export function subscribeModelStatus(
+  listener: (status: ModelStatusMap) => void
+): () => void {
+  modelStatusListeners.add(listener);
+  return () => { modelStatusListeners.delete(listener); };
+}
+
 let proxy: WorkerProxy | null = null;
 
 function getProxy(): WorkerProxy {
@@ -65,6 +92,14 @@ function getProxy(): WorkerProxy {
     const worker = new Worker(
       new URL("./inference.worker.ts", import.meta.url)
     );
+    worker.addEventListener("message", (e: MessageEvent) => {
+      if (e.data.type === "preload") {
+        const { model, status } = e.data as { model: keyof ModelStatusMap; status: ModelLoadStatus };
+        currentModelStatus = { ...currentModelStatus, [model]: status };
+        for (const listener of modelStatusListeners)
+          listener({ ...currentModelStatus });
+      }
+    });
     proxy = new WorkerProxy(worker);
   }
   return proxy;

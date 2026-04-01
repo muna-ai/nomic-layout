@@ -4,12 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { SearchResult } from "@/lib/vector-store"
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input"
 
+export type PipelinePhase = "load-pdf" | "parse-layout" | "embed" | "search";
+
 export interface ChatEntry {
   id: string;
   query: string;
   fileNames?: string[];
   results?: SearchResult[];
   status?: string;
+  phase?: PipelinePhase;
 }
 
 export interface UseSearchChatInput {
@@ -51,8 +54,13 @@ export function useSearchChat({
   useEffect(() => {
     if (!pendingEntryIdRef.current || !pipelineStatus) return;
     const id = pendingEntryIdRef.current;
-    setEntries(prev => prev.map(e => e.id === id ? { ...e, status: pipelineStatus } : e));
-  }, [pipelineStatus]);
+    const phase: PipelinePhase | undefined =
+      pdfStatus ? "load-pdf" :
+      parseStatus ? "parse-layout" :
+      indexStatus ? "embed" :
+      undefined;
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, status: pipelineStatus, phase } : e));
+  }, [pipelineStatus, pdfStatus, parseStatus, indexStatus]);
 
   useEffect(() => {
     if (!pipelineIdle || !pendingQuery) return;
@@ -61,16 +69,16 @@ export function useSearchChat({
     setPendingQuery(null);
     setIsSearching(true);
     if (id)
-      setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Searching..." } : e));
+      setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Searching...", phase: "search" as PipelinePhase } : e));
     (async () => {
       try {
         const results = await searchStore(query);
         if (id)
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: undefined } : e));
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: undefined, phase: undefined } : e));
       } catch (err) {
         console.error("Search failed:", err);
         if (id)
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, results: [], status: undefined } : e));
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, results: [], status: undefined, phase: undefined } : e));
       } finally {
         pendingEntryIdRef.current = null;
         setIsSearching(false);
