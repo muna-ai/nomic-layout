@@ -133,6 +133,6 @@ const STEPS: Step[] = [
     phase: "generate",
     label: "Generating Response",
     description:
-      "GPT-OSS 20B creates a conversational summary based on the search results.",
+      "SmolLM 2 135M creates a conversational summary based on the search results.",
   },
 ];

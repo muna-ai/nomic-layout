@@ -86,18 +86,15 @@ export function useSearchChat({
           setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Generating response...", phase: "generate" as PipelinePhase } : e));
 
           const messages = buildSummaryPrompt(query, results);
-          await postToWorkerThread(generateText, {
-            messages,
-            onChunk: (chunk: string) => {
-              if (id) {
-                setEntries(prev => prev.map(e =>
-                  e.id === id
-                    ? { ...e, llmResponse: (e.llmResponse ?? "") + chunk }
-                    : e
-                ));
-              }
-            }
+          const llmResponse = await postToWorkerThread(generateText, {
+            messages
           });
+
+          if (id) {
+            setEntries(prev => prev.map(e =>
+              e.id === id ? { ...e, llmResponse } : e
+            ));
+          }
         }
 
         // Step 3: Clear status

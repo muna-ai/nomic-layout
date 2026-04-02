@@ -120,10 +120,6 @@ export interface GenerateTextInput {
    * Prediction acceleration.
    */
   acceleration?: Acceleration | RemoteAcceleration;
-  /**
-   * Streaming callback.
-   */
-  onChunk?: (text: string) => void;
 }
 
 export async function preloadModels(
@@ -210,40 +206,25 @@ export async function captionImage({
 
 export async function generateText({
   messages,
-  acceleration = "local_auto",
-  onChunk
+  acceleration = "local_auto"
 }: GenerateTextInput): Promise<string> {
   try {
-    // Use gpt-oss-20b model with OpenAI-compatible API
+    // Use OpenAI-compatible API with streaming disabled for now
     const response = await openai.chat.completions.create({
-      model: "@openai/gpt-oss-20b",
+      model: "@anon/smollm_2_135m",
       messages,
-      acceleration,
+      acceleration: acceleration,
       stream: false,
-      max_tokens: 512,
     } as any);
 
-    let fullText = "";
+    // Extract content from the response
+    const content = (response as any)?.choices?.[0]?.message?.content;
 
-    // Handle streaming response structure
-    if (Array.isArray(response)) {
-      // Response is array of chunks
-      for (const chunk of response) {
-        const content = chunk?.choices?.[0]?.delta?.content ||
-                       chunk?.choices?.[0]?.message?.content || "";
-        if (content) fullText += content;
-      }
-    } else {
-      // Response is single completion
-      fullText = (response as any)?.choices?.[0]?.message?.content || "";
+    if (!content) {
+      throw new Error("No content in LLM response");
     }
 
-    // Send to callback if present
-    if (onChunk && fullText) {
-      onChunk(fullText);
-    }
-
-    return fullText || "No response generated";
+    return content;
   } catch (error: any) {
     console.error("LLM generation error:", error);
     throw new Error(`Failed to generate text: ${error.message}`);
