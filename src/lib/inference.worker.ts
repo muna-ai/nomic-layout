@@ -12,8 +12,23 @@ self.onmessage = async (e: MessageEvent) => {
     return;
   }
   try {
-    const result = await fn(...args);
-    self.postMessage({ id, result });
+    // Handle streaming for generateText
+    if (method === "generateText" && args.length > 0 && args[0].__hasStreamCallback) {
+      const modifiedArgs = [...args];
+      // Remove the flag and add the actual onChunk that posts to main thread
+      const { __hasStreamCallback, ...restArgs } = modifiedArgs[0];
+      modifiedArgs[0] = {
+        ...restArgs,
+        onChunk: (chunk: string) => {
+          self.postMessage({ id, chunk });
+        }
+      };
+      const result = await fn(...modifiedArgs);
+      self.postMessage({ id, result });
+    } else {
+      const result = await fn(...args);
+      self.postMessage({ id, result });
+    }
   } catch (err: any) {
     self.postMessage({
       id,

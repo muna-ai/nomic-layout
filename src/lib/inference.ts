@@ -111,6 +111,21 @@ export interface CaptionImageInput {
   acceleration?: Acceleration | RemoteAcceleration;
 }
 
+export interface GenerateTextInput {
+  /**
+   * Conversation messages.
+   */
+  messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
+  /**
+   * Prediction acceleration.
+   */
+  acceleration?: Acceleration | RemoteAcceleration;
+  /**
+   * Streaming callback.
+   */
+  onChunk?: (text: string) => void;
+}
+
 export async function preloadModels(
   onProgress?: (model: string, status: "loading" | "ready") => void
 ): Promise<void> {
@@ -123,6 +138,9 @@ export async function preloadModels(
   onProgress?.("ocr", "loading");
   try { await recognizeTexts({ } as any); } catch (err) { }
   onProgress?.("ocr", "ready");
+  onProgress?.("llm", "loading");
+  try { await generateText({ } as any); } catch (err) { }
+  onProgress?.("llm", "ready");
 }
 
 export async function createEmbeddings({
@@ -190,9 +208,52 @@ export async function captionImage({
   return prediction.results![0] as string;
 }
 
+export async function generateText({
+  messages,
+  acceleration = "local_auto",
+  onChunk
+}: GenerateTextInput): Promise<string> {
+  try {
+    // Use gpt-oss-20b model with OpenAI-compatible API
+    const response = await openai.chat.completions.create({
+      model: "@openai/gpt-oss-20b",
+      messages,
+      acceleration,
+      stream: false,
+      max_tokens: 512,
+    } as any);
+
+    let fullText = "";
+
+    // Handle streaming response structure
+    if (Array.isArray(response)) {
+      // Response is array of chunks
+      for (const chunk of response) {
+        const content = chunk?.choices?.[0]?.delta?.content ||
+                       chunk?.choices?.[0]?.message?.content || "";
+        if (content) fullText += content;
+      }
+    } else {
+      // Response is single completion
+      fullText = (response as any)?.choices?.[0]?.message?.content || "";
+    }
+
+    // Send to callback if present
+    if (onChunk && fullText) {
+      onChunk(fullText);
+    }
+
+    return fullText || "No response generated";
+  } catch (error: any) {
+    console.error("LLM generation error:", error);
+    throw new Error(`Failed to generate text: ${error.message}`);
+  }
+}
+
 // Pin function names so they survive minification (used by worker RPC dispatch).
 Object.defineProperty(preloadModels, "name", { value: "preloadModels", writable: false });
 Object.defineProperty(createEmbeddings, "name", { value: "createEmbeddings", writable: false });
 Object.defineProperty(parseLayout, "name", { value: "parseLayout", writable: false });
 Object.defineProperty(recognizeTexts, "name", { value: "recognizeTexts", writable: false });
 Object.defineProperty(captionImage, "name", { value: "captionImage", writable: false });
+Object.defineProperty(generateText, "name", { value: "generateText", writable: false });

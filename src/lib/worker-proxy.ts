@@ -1,6 +1,7 @@
 interface PendingCall {
   resolve: (value: any) => void;
   reject: (reason: any) => void;
+  onChunk?: (chunk: any) => void;
 }
 
 /**
@@ -19,10 +20,18 @@ export class WorkerProxy {
   constructor(worker: Worker) {
     this.worker = worker;
     this.worker.onmessage = (e: MessageEvent) => {
-      const { id, result, error, stack } = e.data;
+      const { id, result, error, stack, chunk } = e.data;
       const p = this.pending.get(id);
       if (!p)
         return;
+      // Handle streaming chunks
+      if (chunk !== undefined) {
+        if (typeof (p as any).onChunk === "function") {
+          (p as any).onChunk(chunk);
+        }
+        return;
+      }
+      // Handle final result or error
       this.pending.delete(id);
       if (error !== undefined) {
         const err = new Error(error);
@@ -40,8 +49,24 @@ export class WorkerProxy {
   call<T>(method: string, ...args: unknown[]): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = this.nextId++;
-      this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ id, method, args });
+      // Extract onChunk callback if present in args and remove it from serializable args
+      let onChunk: ((chunk: any) => void) | undefined;
+      let cleanArgs = args;
+
+      if (args.length > 0 && args[0] && typeof (args[0] as any)?.onChunk === "function") {
+        onChunk = (args[0] as any).onChunk;
+        // Create a copy of args with onChunk replaced by a flag
+        cleanArgs = args.map((arg, idx) => {
+          if (idx === 0 && typeof arg === 'object' && arg !== null) {
+            const { onChunk: _, ...rest } = arg as any;
+            return { ...rest, __hasStreamCallback: true };
+          }
+          return arg;
+        });
+      }
+
+      this.pending.set(id, { resolve, reject, onChunk });
+      this.worker.postMessage({ id, method, args: cleanArgs });
     });
   }
 
@@ -64,12 +89,14 @@ export interface ModelStatusMap {
   layout: ModelLoadStatus;
   embeddings: ModelLoadStatus;
   ocr: ModelLoadStatus;
+  llm: ModelLoadStatus;
 }
 
 let currentModelStatus: ModelStatusMap = {
   layout: "pending",
   embeddings: "pending",
   ocr: "pending",
+  llm: "pending",
 };
 
 const modelStatusListeners = new Set<(status: ModelStatusMap) => void>();

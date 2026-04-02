@@ -52,7 +52,16 @@ export function ChatEntryView({
           />
         </Reasoning>
       )}
-      {entry.results && (
+      {entry.llmResponse && (
+        <Message from="assistant">
+          <MessageContent>
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              {entry.llmResponse}
+            </div>
+          </MessageContent>
+        </Message>
+      )}
+      {entry.results && entry.results.length > 0 && (
         <ResultsDisplay
           results={entry.results}
           result={result}

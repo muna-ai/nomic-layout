@@ -129,4 +129,10 @@ const STEPS: Step[] = [
     description:
       "Finding the most relevant regions using vector similarity search.",
   },
+  {
+    phase: "generate",
+    label: "Generating Response",
+    description:
+      "GPT-OSS 20B creates a conversational summary based on the search results.",
+  },
 ];

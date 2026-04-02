@@ -3,14 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { SearchResult } from "@/lib/vector-store"
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input"
+import { generateText } from "@/lib/inference"
+import { postToWorkerThread } from "@/lib/worker-proxy"
+import { buildSummaryPrompt } from "@/lib/prompt-builder"
 
-export type PipelinePhase = "load-pdf" | "parse-layout" | "embed" | "search";
+export type PipelinePhase = "load-pdf" | "parse-layout" | "embed" | "search" | "generate";
 
 export interface ChatEntry {
   id: string;
   query: string;
   fileNames?: string[];
   results?: SearchResult[];
+  llmResponse?: string;
   status?: string;
   phase?: PipelinePhase;
 }
@@ -72,13 +76,37 @@ export function useSearchChat({
       setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Searching...", phase: "search" as PipelinePhase } : e));
     (async () => {
       try {
+        // Step 1: Search for relevant results
         const results = await searchStore(query);
         if (id)
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: undefined, phase: undefined } : e));
-      } catch (err) {
-        console.error("Search failed:", err);
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, results } : e));
+
+        // Step 2: Generate LLM summary
+        if (id && results.length > 0) {
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Generating response...", phase: "generate" as PipelinePhase } : e));
+
+          const messages = buildSummaryPrompt(query, results);
+          await postToWorkerThread(generateText, {
+            messages,
+            onChunk: (chunk: string) => {
+              if (id) {
+                setEntries(prev => prev.map(e =>
+                  e.id === id
+                    ? { ...e, llmResponse: (e.llmResponse ?? "") + chunk }
+                    : e
+                ));
+              }
+            }
+          });
+        }
+
+        // Step 3: Clear status
         if (id)
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, results: [], status: undefined, phase: undefined } : e));
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, status: undefined, phase: undefined } : e));
+      } catch (err) {
+        console.error("Search or generation failed:", err);
+        if (id)
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, results: e.results ?? [], status: undefined, phase: undefined } : e));
       } finally {
         pendingEntryIdRef.current = null;
         setIsSearching(false);
