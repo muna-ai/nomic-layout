@@ -23,16 +23,12 @@ export function buildSummaryPrompt(
 
   const contextBlock = contextParts.join("\n\n");
 
-  // Use system message to set assistant behavior
-  const systemMessage = {
-    role: "system" as const,
-    content: "You are a helpful assistant that answers questions based on document context. Provide clear, complete answers."
-  };
-
+  // Simpler, more direct prompt without system message
+  // SmolLM 135M works better with minimal prompting
   const userMessage = {
     role: "user" as const,
-    content: `${query}\n\nContext:\n${contextBlock}`
+    content: `Based on this information:\n\n${contextBlock}\n\nQuestion: ${query}\nAnswer:`
   };
 
-  return [systemMessage, userMessage];
+  return [userMessage];
 }
