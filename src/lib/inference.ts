@@ -6,7 +6,8 @@ import {
   type RemoteAcceleration
 } from "muna"
 
-const origin = typeof self !== "undefined" ? self.location.origin : "";
+// Use self for both worker and main thread contexts (self is available in both)
+const origin = typeof self !== "undefined" && self.location ? self.location.origin : "";
 const muna = new Muna({ url: `${origin}/api/muna` });
 const openai = muna.beta.openai;
 
@@ -208,8 +209,14 @@ export async function generateText({
   messages,
   acceleration = "local_auto"
 }: GenerateTextInput): Promise<string> {
+  // Create fresh Muna instance at call time to ensure we're in the main thread context
+  // The test page creates its instance with window, so we do the same
+  const callOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const callMuna = new Muna({ url: `${callOrigin}/api/muna` });
+  const callOpenai = callMuna.beta.openai;
+
   // Use exact same approach as working test page
-  const response = await openai.chat.completions.create({
+  const response = await callOpenai.chat.completions.create({
     model: "@anon/smollm_2_135m",
     messages,
     acceleration: acceleration,

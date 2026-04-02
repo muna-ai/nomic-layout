@@ -7,37 +7,27 @@ export function buildSummaryPrompt(
   query: string,
   results: SearchResult[]
 ): Array<{ role: "user" | "assistant" | "system"; content: string }> {
-  // System message to set behavior
-  const systemMessage = {
-    role: "system" as const,
-    content: "You are a helpful assistant that answers questions based on provided document excerpts. Be concise and conversational. Cite specific information from the context when relevant."
-  };
-
-  // Build context from search results
+  // Keep it extremely short due to memory constraints of SmolLM 135M
   const contextParts: string[] = [];
-
-  // Limit context to avoid token overflow (SmolLM has limited context window)
-  const maxResults = Math.min(results.length, 7);
+  const maxResults = Math.min(results.length, 2); // Reduced from 7 to 2
 
   for (let i = 0; i < maxResults; i++) {
     const result = results[i];
-    // Truncate very long text to save tokens
-    const text = result.text.length > 500
-      ? result.text.slice(0, 500) + "..."
+    // Much shorter excerpts - only 100 chars instead of 500
+    const text = result.text.length > 100
+      ? result.text.slice(0, 100) + "..."
       : result.text;
 
-    contextParts.push(
-      `[Document: ${result.documentName}, Page ${result.pageNumber}, ${result.type}]\n${text}`
-    );
+    contextParts.push(text); // Removed metadata to save tokens
   }
 
-  const contextBlock = contextParts.join("\n\n---\n\n");
+  const contextBlock = contextParts.join("\n\n");
 
-  // User message with context + question
+  // Very minimal prompt to save memory
   const userMessage = {
     role: "user" as const,
-    content: `Based on the following excerpts from documents, please answer this question:\n\n"${query}"\n\n---\n\n${contextBlock}\n\n---\n\nPlease provide a clear, conversational answer based on the information above.`
+    content: `Q: ${query}\n\nContext:\n${contextBlock}\n\nA:`
   };
 
-  return [systemMessage, userMessage];
+  return [userMessage]; // No system message to save tokens
 }

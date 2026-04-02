@@ -52,6 +52,13 @@ export function ChatEntryView({
           />
         </Reasoning>
       )}
+      {entry.results && entry.results.length > 0 && (
+        <ResultsDisplay
+          results={entry.results}
+          result={result}
+          onShowPreview={onShowPreview}
+        />
+      )}
       {entry.llmResponse && (
         <Message from="assistant">
           <MessageContent>
@@ -60,13 +67,6 @@ export function ChatEntryView({
             </div>
           </MessageContent>
         </Message>
-      )}
-      {entry.results && entry.results.length > 0 && (
-        <ResultsDisplay
-          results={entry.results}
-          result={result}
-          onShowPreview={onShowPreview}
-        />
       )}
     </div>
   );

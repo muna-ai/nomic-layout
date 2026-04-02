@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { SearchResult } from "@/lib/vector-store"
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input"
-import { generateText } from "@/lib/inference"
+import { generateLLMText } from "@/lib/llm"
 import { postToWorkerThread } from "@/lib/worker-proxy"
 import { buildSummaryPrompt } from "@/lib/prompt-builder"
 
@@ -76,33 +76,28 @@ export function useSearchChat({
       setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Searching...", phase: "search" as PipelinePhase } : e));
     (async () => {
       try {
-        // Step 1: Search for relevant results
+        // Perform actual search
         const results = await searchStore(query);
-        if (id)
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, results } : e));
 
-        // Step 2: Generate LLM summary
-        if (id && results.length > 0) {
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Generating response...", phase: "generate" as PipelinePhase } : e));
+        if (id) {
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: "Generating response...", phase: "generate" as PipelinePhase } : e));
 
+          // Generate LLM response from search results
           const messages = buildSummaryPrompt(query, results);
-          // Call directly from main thread, not through worker (Muna SDK has issues with chat completions in workers)
-          const llmResponse = await generateText({ messages });
+          const llmResponse = await generateLLMText({ messages });
 
-          if (id) {
-            setEntries(prev => prev.map(e =>
-              e.id === id ? { ...e, llmResponse } : e
-            ));
-          }
+          setEntries(prev => prev.map(e =>
+            e.id === id ? { ...e, llmResponse } : e
+          ));
         }
 
-        // Step 3: Clear status
+        // Clear status
         if (id)
           setEntries(prev => prev.map(e => e.id === id ? { ...e, status: undefined, phase: undefined } : e));
       } catch (err) {
-        console.error("Search or generation failed:", err);
+        console.error("Search or LLM generation failed:", err);
         if (id)
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, results: e.results ?? [], status: undefined, phase: undefined } : e));
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, results: [], status: undefined, phase: undefined } : e));
       } finally {
         pendingEntryIdRef.current = null;
         setIsSearching(false);

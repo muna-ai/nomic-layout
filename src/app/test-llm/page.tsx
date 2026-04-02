@@ -68,6 +68,45 @@ export default function TestLLM() {
     }
   };
 
+  const testLongerPrompt = async () => {
+    setLog([]);
+    addLog('Testing SmolLM with longer prompt (like actual use)...');
+
+    try {
+      // Simulate the actual prompt format from the app
+      const messages = [
+        {
+          role: "user" as const,
+          content: `Q: What is machine learning?\n\nContext:\nMachine learning is a subset of artificial intelligence that enables systems to learn and improve...\n\nDeep learning uses neural networks with multiple layers to process data and make predictions...\n\nA:`
+        }
+      ];
+
+      addLog('Messages: ' + JSON.stringify(messages, null, 2));
+      addLog('Calling openai.chat.completions.create with stream: false...');
+      const response = await openai.chat.completions.create({
+        model: "@anon/smollm_2_135m",
+        messages,
+        acceleration: "local_auto",
+        stream: false,
+      } as any);
+
+      addLog('Response received!');
+      addLog('Full response: ' + JSON.stringify(response, null, 2));
+
+      const content = (response as any)?.choices?.[0]?.message?.content;
+      if (content) {
+        addLog('\n✅ SUCCESS!');
+        addLog('Generated text: ' + content);
+      } else {
+        addLog('\n⚠️ No content in response');
+        addLog('Choices: ' + JSON.stringify((response as any)?.choices, null, 2));
+      }
+    } catch (error: any) {
+      addLog('\n❌ ERROR: ' + error.message);
+      addLog('Stack: ' + error.stack);
+    }
+  };
+
   return (
     <div style={{ padding: 20, fontFamily: 'monospace' }}>
       <h1>Model Test</h1>
@@ -79,9 +118,15 @@ export default function TestLLM() {
       </button>
       <button
         onClick={testLLM}
+        style={{ padding: '10px 20px', fontSize: 16, cursor: 'pointer', marginRight: 10 }}
+      >
+        Test Simple (2+2)
+      </button>
+      <button
+        onClick={testLongerPrompt}
         style={{ padding: '10px 20px', fontSize: 16, cursor: 'pointer' }}
       >
-        Test @anon/smollm_2_135m
+        Test Longer Prompt
       </button>
       <pre style={{
         whiteSpace: 'pre-wrap',
