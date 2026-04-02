@@ -54,7 +54,10 @@ function PdfThumbnail({ url }: { url: string }) {
     let cancelled = false;
     (async () => {
       const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.min.mjs",
+        import.meta.url
+      ).toString();
       const resp = await fetch(url);
       const buffer = await resp.arrayBuffer();
       const doc = await pdfjsLib.getDocument({ data: buffer }).promise;

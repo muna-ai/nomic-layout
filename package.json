@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start"
   },
@@ -22,7 +22,7 @@
     "muna": "^0.0.54",
     "nanoid": "^5.1.6",
     "next": "16.1.7",
-    "pdfjs-dist": "^5.5.207",
+    "pdfjs-dist": "^4.9.155",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
