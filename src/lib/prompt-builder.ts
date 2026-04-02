@@ -7,15 +7,15 @@ export function buildSummaryPrompt(
   query: string,
   results: SearchResult[]
 ): Array<{ role: "user" | "assistant" | "system"; content: string }> {
-  // Expand context for better quality answers
+  // Maximize context for better quality answers
   const contextParts: string[] = [];
-  const maxResults = Math.min(results.length, 5); // Increased from 2 to 5
+  const maxResults = Math.min(results.length, 7); // Increased from 5 to 7
 
   for (let i = 0; i < maxResults; i++) {
     const result = results[i];
-    // Increased character limit from 100 to 300
-    const text = result.text.length > 300
-      ? result.text.slice(0, 300) + "..."
+    // Increased character limit from 300 to 500 for more context
+    const text = result.text.length > 500
+      ? result.text.slice(0, 500) + "..."
       : result.text;
 
     contextParts.push(text);
@@ -23,11 +23,16 @@ export function buildSummaryPrompt(
 
   const contextBlock = contextParts.join("\n\n");
 
-  // Improved prompt structure
-  const userMessage = {
-    role: "user" as const,
-    content: `Q: ${query}\n\nContext:\n${contextBlock}\n\nA:`
+  // Use system message to set assistant behavior
+  const systemMessage = {
+    role: "system" as const,
+    content: "You are a helpful assistant that answers questions based on document context. Provide clear, complete answers."
   };
 
-  return [userMessage];
+  const userMessage = {
+    role: "user" as const,
+    content: `${query}\n\nContext:\n${contextBlock}`
+  };
+
+  return [systemMessage, userMessage];
 }

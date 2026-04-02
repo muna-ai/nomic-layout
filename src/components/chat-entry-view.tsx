@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react"
 import { FileTextIcon } from "lucide-react"
 import type { SearchResult } from "@/lib/vector-store"
 import type { ChatEntry } from "@/hooks/use-search-chat"
@@ -19,6 +20,14 @@ export function ChatEntryView({
   result,
   onShowPreview,
 }: ChatEntryViewProps) {
+  const llmResponseRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (entry.llmResponse && llmResponseRef.current) {
+      llmResponseRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [entry.llmResponse]);
+
   return (
     <div className="flex flex-col gap-6">
       <Message from="user">
@@ -60,7 +69,7 @@ export function ChatEntryView({
         />
       )}
       {entry.llmResponse && (
-        <Message from="assistant">
+        <Message from="assistant" ref={llmResponseRef}>
           <MessageContent>
             <div className="prose prose-sm max-w-none dark:prose-invert">
               {entry.llmResponse}
