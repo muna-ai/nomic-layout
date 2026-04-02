@@ -88,12 +88,11 @@ export function useSearchChat({
 
           for await (const chunk of generateLLMText({ messages })) {
             accumulatedResponse += chunk;
-            // Use queueMicrotask to ensure each update renders
-            queueMicrotask(() => {
-              setEntries(prev => prev.map(e =>
-                e.id === id ? { ...e, llmResponse: accumulatedResponse } : e
-              ));
-            });
+            setEntries(prev => prev.map(e =>
+              e.id === id ? { ...e, llmResponse: accumulatedResponse } : e
+            ));
+            // Small delay to ensure React processes each update
+            await new Promise(resolve => setTimeout(resolve, 0));
           }
         }
 
