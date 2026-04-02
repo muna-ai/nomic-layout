@@ -26,12 +26,12 @@ export function buildSummaryPrompt(
   };
 
   // Debug: Log what we're sending to the LLM
-  console.log('=== PROMPT BUILDER DEBUG ===');
-  console.log('Query:', query);
-  console.log('Number of results:', results.length);
-  console.log('Context parts:', contextParts);
-  console.log('Full prompt:', userMessage.content);
-  console.log('=== END DEBUG ===');
+  // console.log('=== PROMPT BUILDER DEBUG ===');
+  // console.log('Query:', query);
+  // console.log('Number of results:', results.length);
+  // console.log('Context parts:', contextParts);
+  // console.log('Full prompt:', userMessage.content);
+  // console.log('=== END DEBUG ===');
 
   return [userMessage];
 }

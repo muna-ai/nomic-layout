@@ -29,7 +29,7 @@ export async function* generateLLMText({
     for await (const chunk of stream as any) {
       const content = chunk?.choices?.[0]?.delta?.content;
       if (content) {
-        console.log('LLM chunk:', content);
+        // console.log('LLM chunk:', content);
         yield content;
       }
     }
