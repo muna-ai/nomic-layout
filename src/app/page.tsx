@@ -30,7 +30,7 @@ export default function Home() {
   const modelStatus = useModelStatus();
   // Documents & text
   const [documents, setDocuments] = useState<File[]>([]);
-  const [text, setText] = useState("How much is the 8GB Raspberry Pi?");
+  const [text, setText] = useState("What CPU does the Raspberry Pi 5 use?");
   // Pipeline
   const { pages, status: pdfStatus } = usePdfReader({ documents });
   const { elements, status: parseStatus } = useLayoutParser({ pages });

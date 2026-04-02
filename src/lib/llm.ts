@@ -10,29 +10,32 @@ export interface GenerateLLMTextInput {
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
 }
 
-export async function generateLLMText({
+export async function* generateLLMText({
   messages
-}: GenerateLLMTextInput): Promise<string> {
-  console.log('LLM: Sending messages:', JSON.stringify(messages, null, 2));
+}: GenerateLLMTextInput): AsyncGenerator<string, void, unknown> {
+  console.log('LLM: Sending messages (streaming):', JSON.stringify(messages, null, 2));
 
-  // Use exact same approach as working test page
-  const response = await openai.chat.completions.create({
+  // Enable streaming
+  const stream = await openai.chat.completions.create({
     model: "@anon/smollm_2_135m",
     messages,
     acceleration: "local_auto",
-    stream: false,
+    stream: true,
   } as any);
 
-  console.log('LLM: Full response:', JSON.stringify(response, null, 2));
+  console.log('LLM: Stream started');
 
-  const content = (response as any)?.choices?.[0]?.message?.content;
-
-  if (!content) {
-    console.error('LLM: No content found in response. Choices:', (response as any)?.choices);
-    // Return a fallback message instead of throwing
-    return "I couldn't generate a response. Please try again with a shorter question.";
+  try {
+    for await (const chunk of stream as any) {
+      const content = chunk?.choices?.[0]?.delta?.content;
+      if (content) {
+        console.log('LLM chunk:', content);
+        yield content;
+      }
+    }
+    console.log('LLM: Stream complete');
+  } catch (error) {
+    console.error('LLM streaming error:', error);
+    yield "I couldn't generate a response. Please try again.";
   }
-
-  console.log('LLM: Generated content:', content);
-  return content;
 }

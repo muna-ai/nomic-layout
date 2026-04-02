@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, startTransition } from "react"
 import type { SearchResult } from "@/lib/vector-store"
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input"
 import { generateLLMText } from "@/lib/llm"
@@ -82,13 +82,19 @@ export function useSearchChat({
         if (id) {
           setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: "Generating response...", phase: "generate" as PipelinePhase } : e));
 
-          // Generate LLM response from search results
+          // Generate LLM response from search results - stream the chunks
           const messages = buildSummaryPrompt(query, results);
-          const llmResponse = await generateLLMText({ messages });
+          let accumulatedResponse = "";
 
-          setEntries(prev => prev.map(e =>
-            e.id === id ? { ...e, llmResponse } : e
-          ));
+          for await (const chunk of generateLLMText({ messages })) {
+            accumulatedResponse += chunk;
+            // Use queueMicrotask to ensure each update renders
+            queueMicrotask(() => {
+              setEntries(prev => prev.map(e =>
+                e.id === id ? { ...e, llmResponse: accumulatedResponse } : e
+              ));
+            });
+          }
         }
 
         // Clear status
