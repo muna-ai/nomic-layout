@@ -86,9 +86,8 @@ export function useSearchChat({
           setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Generating response...", phase: "generate" as PipelinePhase } : e));
 
           const messages = buildSummaryPrompt(query, results);
-          const llmResponse = await postToWorkerThread(generateText, {
-            messages
-          });
+          // Call directly from main thread, not through worker (Muna SDK has issues with chat completions in workers)
+          const llmResponse = await generateText({ messages });
 
           if (id) {
             setEntries(prev => prev.map(e =>

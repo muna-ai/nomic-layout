@@ -208,27 +208,21 @@ export async function generateText({
   messages,
   acceleration = "local_auto"
 }: GenerateTextInput): Promise<string> {
-  try {
-    // Use OpenAI-compatible API with streaming disabled for now
-    const response = await openai.chat.completions.create({
-      model: "@anon/smollm_2_135m",
-      messages,
-      acceleration: acceleration,
-      stream: false,
-    } as any);
+  // Use exact same approach as working test page
+  const response = await openai.chat.completions.create({
+    model: "@anon/smollm_2_135m",
+    messages,
+    acceleration: acceleration,
+    stream: false,
+  } as any);
 
-    // Extract content from the response
-    const content = (response as any)?.choices?.[0]?.message?.content;
+  const content = (response as any)?.choices?.[0]?.message?.content;
 
-    if (!content) {
-      throw new Error("No content in LLM response");
-    }
-
-    return content;
-  } catch (error: any) {
-    console.error("LLM generation error:", error);
-    throw new Error(`Failed to generate text: ${error.message}`);
+  if (!content) {
+    throw new Error(`No content in LLM response: ${JSON.stringify(response)}`);
   }
+
+  return content;
 }
 
 // Pin function names so they survive minification (used by worker RPC dispatch).
