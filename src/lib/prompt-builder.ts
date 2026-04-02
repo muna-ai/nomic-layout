@@ -7,28 +7,31 @@ export function buildSummaryPrompt(
   query: string,
   results: SearchResult[]
 ): Array<{ role: "user" | "assistant" | "system"; content: string }> {
-  // Maximize context for better quality answers
+  // Use full text of top 2 results for complete context
   const contextParts: string[] = [];
-  const maxResults = Math.min(results.length, 7); // Increased from 5 to 7
+  const maxResults = Math.min(results.length, 2); // Top 2 results only
 
   for (let i = 0; i < maxResults; i++) {
     const result = results[i];
-    // Increased character limit from 300 to 500 for more context
-    const text = result.text.length > 500
-      ? result.text.slice(0, 500) + "..."
-      : result.text;
-
-    contextParts.push(text);
+    // Use full text, no truncation
+    contextParts.push(result.text);
   }
 
-  const contextBlock = contextParts.join("\n\n");
+  const contextBlock = contextParts.join("\n");
 
-  // Simpler, more direct prompt without system message
-  // SmolLM 135M works better with minimal prompting
+  // Minimal extraction prompt - just context and question
   const userMessage = {
     role: "user" as const,
-    content: `Based on this information:\n\n${contextBlock}\n\nQuestion: ${query}\nAnswer:`
+    content: `${contextBlock}\n${query}`
   };
+
+  // Debug: Log what we're sending to the LLM
+  console.log('=== PROMPT BUILDER DEBUG ===');
+  console.log('Query:', query);
+  console.log('Number of results:', results.length);
+  console.log('Context parts:', contextParts);
+  console.log('Full prompt:', userMessage.content);
+  console.log('=== END DEBUG ===');
 
   return [userMessage];
 }
