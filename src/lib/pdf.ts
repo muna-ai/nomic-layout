@@ -40,11 +40,7 @@ export async function loadPdf(
     const viewport = page.getViewport({ scale: RENDER_SCALE });
     const canvas = new OffscreenCanvas(viewport.width, viewport.height);
     const ctx = canvas.getContext("2d")!;
-    await page.render({
-      canvas: canvas as any,
-      canvasContext: ctx as any,
-      viewport
-    }).promise;
+    await page.render({ canvas, canvasContext: ctx, viewport } as any).promise;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const image: Image = {
       data: imageData.data,
@@ -87,22 +83,26 @@ export function renderPdfPage(
   pageNumber: number,
   canvas: HTMLCanvasElement
 ): RenderPdfPageResult {
+  let cancelled = false;
   let renderTask: { cancel: () => void } | null = null;
 
   const promise = (async () => {
     const pdfjsLib = await getPdfjs();
+    if (cancelled) return;
     const buffer = await file.arrayBuffer();
+    if (cancelled) return;
     const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+    if (cancelled) { doc.destroy(); return; }
     const page = await doc.getPage(pageNumber);
+    if (cancelled) { page.cleanup(); doc.destroy(); return; }
     const viewport = page.getViewport({ scale: PREVIEW_SCALE });
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const ctx = canvas.getContext("2d");
-    if (!ctx)
-      return;
+    if (!ctx) { page.cleanup(); doc.destroy(); return; }
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const task = page.render({ canvas, canvasContext: ctx, viewport });
+    const task = page.render({ canvas, canvasContext: ctx, viewport } as any);
     renderTask = task;
     await task.promise;
     page.cleanup();
@@ -111,9 +111,8 @@ export function renderPdfPage(
 
   return {
     cancel: () => {
-      if (renderTask && typeof (renderTask as any).cancel === "function") {
-        (renderTask as any).cancel();
-      }
+      cancelled = true;
+      renderTask?.cancel();
     },
     promise,
   };

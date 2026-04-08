@@ -70,11 +70,7 @@ function PdfThumbnail({ url }: { url: string }) {
       const ctx = canvas.getContext("2d")!;
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({
-        canvas: canvas as any,
-        canvasContext: ctx as any,
-        viewport,
-      }).promise;
+      await page.render({ canvas, canvasContext: ctx, viewport } as any).promise;
       page.cleanup();
       doc.destroy();
       if (!cancelled) setReady(true);
