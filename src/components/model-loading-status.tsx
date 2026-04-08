@@ -59,9 +59,6 @@ export function ModelLoadingStatus({ modelStatus }: { modelStatus: ModelStatusMa
           })}
         </div>
       </div>
-      <p className="text-[11px] text-muted-foreground/40">
-        Models are cached after first download
-      </p>
     </div>
   );
 }

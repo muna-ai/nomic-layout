@@ -71,15 +71,13 @@ export function useSearchChat({
     setPendingQuery(null);
     setIsSearching(true);
     if (id)
-      setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Searching...", phase: "search" as PipelinePhase } : e));
+      setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Searching...", phase: "search" satisfies PipelinePhase } : e));
     (async () => {
       try {
         // Perform actual search
         const results = await searchStore(query);
-
         if (id) {
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: "Generating response...", phase: "generate" as PipelinePhase } : e));
-
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: "Generating response...", phase: "summarize" satisfies PipelinePhase } : e));
           // Generate LLM response from search results - stream the chunks
           let accumulatedResponse = "";
           for await (const chunk of generateSummary({ query, results })) {
@@ -87,11 +85,8 @@ export function useSearchChat({
             setEntries(prev => prev.map(e =>
               e.id === id ? { ...e, llmResponse: accumulatedResponse } : e
             ));
-            // Small delay to ensure React processes each update
-            //await new Promise(resolve => setTimeout(resolve, 0));
           }
         }
-
         // Clear status
         if (id)
           setEntries(prev => prev.map(e => e.id === id ? { ...e, status: undefined, phase: undefined } : e));

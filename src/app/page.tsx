@@ -65,7 +65,6 @@ export default function Home() {
                   <ChatEntryView
                     key={entry.id}
                     entry={entry}
-                    result={result}
                     onShowPreview={showResultPreview}
                   />
                 ))}
