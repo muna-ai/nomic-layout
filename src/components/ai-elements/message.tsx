@@ -31,12 +31,13 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 
-export type MessageProps = HTMLAttributes<HTMLDivElement> & {
+export type MessageProps = ComponentProps<"div"> & {
   from: UIMessage["role"];
 };
 
-export const Message = ({ className, from, ...props }: MessageProps) => (
+export const Message = ({ className, from, ref, ...props }: MessageProps) => (
   <div
+    ref={ref}
     className={cn(
       "group flex w-full max-w-[95%] flex-col gap-2",
       from === "user" ? "is-user ml-auto justify-end" : "is-assistant",

@@ -125,34 +125,23 @@ export interface GenerateSummaryInput {
 export async function preloadModels(
   onProgress?: (model: string, status: "loading" | "ready") => void
 ): Promise<void> {
-  const openai = muna.beta.openai;
-  // Preload Nomic Layout v1
   onProgress?.("layout", "loading");
-  await muna.predictions.create({
-    tag: "@nomic/nomic-layout-v1",
-    inputs: { },
-  });
+  try { await parseLayout({ } as any); } catch (err) { console.warn(err); }
   onProgress?.("layout", "ready");
-  // Preload Nomic Embed Text v1.5  
   onProgress?.("embeddings", "loading");
-  await openai.embeddings.create({
-    model: "@nomic/nomic-embed-text-v1.5-quant",
-    input: "hi"
-  });
+  try { await createEmbeddings({ } as any); } catch (err) { console.warn(err); }
   onProgress?.("embeddings", "ready");
-  // Preload Rapid OCR
   onProgress?.("ocr", "loading");
-  await muna.predictions.create({
-    tag: "@rapid-ai/rapid-ocr",
-    inputs: { }
-  });
+  try { await recognizeTexts({ } as any); } catch (err) { console.warn(err); }
   onProgress?.("ocr", "ready");
-  // Preload Huggingface SmolLM2 135M
   onProgress?.("llm", "loading");
-  await openai.chat.completions.create({
-    model: "@huggingface/smollm2-135m",
-    messages: []
-  });
+  try {
+    const openai = muna.beta.openai;
+    await openai.chat.completions.create({
+      model: "@huggingface/smollm2-135m",
+      messages: [],
+    });
+  } catch (err) { console.warn(err); }
   onProgress?.("llm", "ready");
 }
 
@@ -228,7 +217,7 @@ export async function* generateSummary({
   // Stream completion
   const openai = muna.beta.openai;
   const completion = await openai.chat.completions.create({
-    model: "@anon/smollm_2_135m",
+    model: "@huggingface/smollm2-135m",
     messages: [{ role: "user", content }],
     acceleration,
     stream: true,
