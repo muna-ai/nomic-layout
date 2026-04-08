@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { createEmbeddings } from "@/lib/inference"
-import { postToWorkerThread } from "@/lib/worker-proxy"
+import { createEmbeddings } from "@/lib/ai"
 import { VectorStore, type Element, type SearchResult } from "@/lib/vector-store"
 
 export interface UseVectorStoreInput {
@@ -36,7 +35,7 @@ export function useVectorStore({ elements }: UseVectorStoreInput): UseVectorStor
         const start = i * EMBEDDING_BATCH_SIZE;
         const batch = texts.slice(start, start + EMBEDDING_BATCH_SIZE);
         setActiveStatus(`Embedding regions (${start + batch.length}/${texts.length})...`);
-        const response = await postToWorkerThread(createEmbeddings, {
+        const response = await createEmbeddings({
           texts: batch,
           task: "search_document",
         });
@@ -54,7 +53,7 @@ export function useVectorStore({ elements }: UseVectorStoreInput): UseVectorStor
   // Search store handler
   const searchStore = useCallback(
     async (query: string, topK: number = DEFAULT_TOP_K): Promise<SearchResult[]> => {
-      const response = await postToWorkerThread(createEmbeddings, {
+      const response = await createEmbeddings({
         texts: [query],
         task: "search_query",
       });

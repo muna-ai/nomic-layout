@@ -2,7 +2,7 @@
 
 import { CheckIcon, Loader2Icon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { ModelLoadStatus, ModelStatusMap } from "@/lib/worker-proxy"
+import type { ModelLoadStatus, ModelStatusMap } from "@/hooks/use-model-status"
 
 const MODEL_INFO: { key: keyof ModelStatusMap; label: string; tag: string }[] = [
   { key: "layout", label: "Layout Detection", tag: "nomic-layout-v1" },

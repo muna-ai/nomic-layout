@@ -1,14 +1,8 @@
-import {
-  Muna,
-  type Acceleration,
-  type CreateEmbeddingResponse,
-  type Image,
-  type RemoteAcceleration
-} from "muna"
+import { Muna } from "muna"
+import type { Acceleration, CreateEmbeddingResponse, Image } from "muna"
 
 const origin = typeof self !== "undefined" ? self.location.origin : "";
 const muna = new Muna({ url: `${origin}/api/muna` });
-const openai = muna.beta.openai;
 
 export type LayoutItemLabel = 
   "Picture"           | 
@@ -75,7 +69,7 @@ export interface CreateEmbeddingsInput {
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
 export interface ParseLayoutInput {
@@ -86,7 +80,7 @@ export interface ParseLayoutInput {
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
 export interface RecognizeTextInput {
@@ -97,7 +91,7 @@ export interface RecognizeTextInput {
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
 export interface CaptionImageInput {
@@ -108,7 +102,7 @@ export interface CaptionImageInput {
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
 export async function preloadModels(
@@ -130,6 +124,7 @@ export async function createEmbeddings({
   task,
   acceleration = "local_auto"
 }: CreateEmbeddingsInput): Promise<CreateEmbeddingResponse> {
+  const openai = muna.beta.openai;
   const input = task ? texts.map(t => `${task}: ${t}`) : texts;
   const embedding = await openai.embeddings.create({
     model: "@nomic/nomic-embed-text-v1.5-quant",
@@ -143,14 +138,11 @@ export async function parseLayout({
   image,
   acceleration = "local_auto"
 }: ParseLayoutInput): Promise<LayoutItem[]> {
-  const opts = {
+  const prediction = await muna.predictions.create({
     tag: "@nomic/nomic-layout-v1",
     inputs: { image },
-    acceleration: acceleration as any
-  };
-  const prediction = acceleration.startsWith("remote_") ?
-    await muna.beta.predictions.remote.create(opts) :
-    await muna.predictions.create(opts);
+    acceleration
+  });
   if (prediction.error)
     throw new Error(prediction.error);
   return prediction.results![0] as LayoutItem[];
@@ -160,14 +152,11 @@ export async function recognizeTexts({
   image,
   acceleration = "local_auto"
 }: RecognizeTextInput): Promise<OcrResult[]> {
-  const opts = {
+  const prediction = await muna.predictions.create({
     tag: "@rapid-ai/rapid-ocr",
     inputs: { image },
-    acceleration: acceleration as any
-  };
-  const prediction = acceleration.startsWith("remote_") ?
-    await muna.beta.predictions.remote.create(opts) :
-    await muna.predictions.create(opts);
+    acceleration
+  });
   if (prediction.error)
     throw new Error(prediction.error);
   return prediction.results![0] as OcrResult[];
@@ -175,24 +164,14 @@ export async function recognizeTexts({
 
 export async function captionImage({
   image,
-  acceleration = "remote_a10" as RemoteAcceleration
+  acceleration = "remote_a10"
 }: CaptionImageInput): Promise<string> {
-  const opts = {
+  const prediction = await muna.predictions.create({
     tag: "@salesforce/blip-image-captioning-base",
     inputs: { image },
-    acceleration: acceleration as any
-  };
-  const prediction = acceleration.startsWith("remote_") ?
-  await muna.beta.predictions.remote.create(opts) :
-  await muna.predictions.create(opts);
+    acceleration: acceleration
+  });
   if (prediction.error)
     throw new Error(prediction.error);
   return prediction.results![0] as string;
 }
-
-// Pin function names so they survive minification (used by worker RPC dispatch).
-Object.defineProperty(preloadModels, "name", { value: "preloadModels", writable: false });
-Object.defineProperty(createEmbeddings, "name", { value: "createEmbeddings", writable: false });
-Object.defineProperty(parseLayout, "name", { value: "parseLayout", writable: false });
-Object.defineProperty(recognizeTexts, "name", { value: "recognizeTexts", writable: false });
-Object.defineProperty(captionImage, "name", { value: "captionImage", writable: false });
