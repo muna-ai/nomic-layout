@@ -1,4 +1,4 @@
-import type { LayoutItemLabel } from "./inference"
+import type { LayoutItemLabel } from "./ai"
 
 export interface Element {
   documentName: string;

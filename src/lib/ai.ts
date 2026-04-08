@@ -1,15 +1,10 @@
-import {
-  Muna,
-  type Acceleration,
-  type CreateEmbeddingResponse,
-  type Image,
-  type RemoteAcceleration
-} from "muna"
+import { Muna } from "muna"
+import type { Acceleration, CreateEmbeddingResponse, Image } from "muna"
+import type { SearchResult } from "@/lib/vector-store"
 
 // Use self for both worker and main thread contexts (self is available in both)
 const origin = typeof self !== "undefined" && self.location ? self.location.origin : "";
 const muna = new Muna({ url: `${origin}/api/muna` });
-const openai = muna.beta.openai;
 
 export type LayoutItemLabel = 
   "Picture"           | 
@@ -76,7 +71,7 @@ export interface CreateEmbeddingsInput {
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
 export interface ParseLayoutInput {
@@ -87,7 +82,7 @@ export interface ParseLayoutInput {
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
 export interface RecognizeTextInput {
@@ -98,7 +93,7 @@ export interface RecognizeTextInput {
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
 export interface CaptionImageInput {
@@ -109,34 +104,55 @@ export interface CaptionImageInput {
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
-export interface GenerateTextInput {
+export interface GenerateSummaryInput {
   /**
-   * Conversation messages.
+   * Search query.
    */
-  messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
+  query: string;
+  /**
+   * Search results.
+   */
+  results: SearchResult[];
   /**
    * Prediction acceleration.
    */
-  acceleration?: Acceleration | RemoteAcceleration;
+  acceleration?: Acceleration;
 }
 
 export async function preloadModels(
   onProgress?: (model: string, status: "loading" | "ready") => void
 ): Promise<void> {
+  const openai = muna.beta.openai;
+  // Preload Nomic Layout v1
   onProgress?.("layout", "loading");
-  try { await parseLayout({ } as any); } catch (err) { }
+  await muna.predictions.create({
+    tag: "@nomic/nomic-layout-v1",
+    inputs: { },
+  });
   onProgress?.("layout", "ready");
+  // Preload Nomic Embed Text v1.5  
   onProgress?.("embeddings", "loading");
-  try { await createEmbeddings({ } as any); } catch (err) { }
+  await openai.embeddings.create({
+    model: "@nomic/nomic-embed-text-v1.5-quant",
+    input: "hi"
+  });
   onProgress?.("embeddings", "ready");
+  // Preload Rapid OCR
   onProgress?.("ocr", "loading");
-  try { await recognizeTexts({ } as any); } catch (err) { }
+  await muna.predictions.create({
+    tag: "@rapid-ai/rapid-ocr",
+    inputs: { }
+  });
   onProgress?.("ocr", "ready");
+  // Preload Huggingface SmolLM2 135M
   onProgress?.("llm", "loading");
-  try { await generateText({ } as any); } catch (err) { }
+  await openai.chat.completions.create({
+    model: "@huggingface/smollm2-135m",
+    messages: []
+  });
   onProgress?.("llm", "ready");
 }
 
@@ -145,6 +161,7 @@ export async function createEmbeddings({
   task,
   acceleration = "local_auto"
 }: CreateEmbeddingsInput): Promise<CreateEmbeddingResponse> {
+  const openai = muna.beta.openai;
   const input = task ? texts.map(t => `${task}: ${t}`) : texts;
   const embedding = await openai.embeddings.create({
     model: "@nomic/nomic-embed-text-v1.5-quant",
@@ -158,14 +175,11 @@ export async function parseLayout({
   image,
   acceleration = "local_auto"
 }: ParseLayoutInput): Promise<LayoutItem[]> {
-  const opts = {
+  const prediction = await muna.predictions.create({
     tag: "@nomic/nomic-layout-v1",
     inputs: { image },
-    acceleration: acceleration as any
-  };
-  const prediction = acceleration.startsWith("remote_") ?
-    await muna.beta.predictions.remote.create(opts) :
-    await muna.predictions.create(opts);
+    acceleration
+  });
   if (prediction.error)
     throw new Error(prediction.error);
   return prediction.results![0] as LayoutItem[];
@@ -175,14 +189,11 @@ export async function recognizeTexts({
   image,
   acceleration = "local_auto"
 }: RecognizeTextInput): Promise<OcrResult[]> {
-  const opts = {
+  const prediction = await muna.predictions.create({
     tag: "@rapid-ai/rapid-ocr",
     inputs: { image },
-    acceleration: acceleration as any
-  };
-  const prediction = acceleration.startsWith("remote_") ?
-    await muna.beta.predictions.remote.create(opts) :
-    await muna.predictions.create(opts);
+    acceleration
+  });
   if (prediction.error)
     throw new Error(prediction.error);
   return prediction.results![0] as OcrResult[];
@@ -190,52 +201,47 @@ export async function recognizeTexts({
 
 export async function captionImage({
   image,
-  acceleration = "remote_a10" as RemoteAcceleration
+  acceleration = "remote_a10"
 }: CaptionImageInput): Promise<string> {
-  const opts = {
+  const prediction = await muna.predictions.create({
     tag: "@salesforce/blip-image-captioning-base",
     inputs: { image },
-    acceleration: acceleration as any
-  };
-  const prediction = acceleration.startsWith("remote_") ?
-  await muna.beta.predictions.remote.create(opts) :
-  await muna.predictions.create(opts);
+    acceleration: acceleration
+  });
   if (prediction.error)
     throw new Error(prediction.error);
   return prediction.results![0] as string;
 }
 
-export async function generateText({
-  messages,
+export async function* generateSummary({
+  query,
+  results,
   acceleration = "local_auto"
-}: GenerateTextInput): Promise<string> {
-  // Create fresh Muna instance at call time to ensure we're in the main thread context
-  // The test page creates its instance with window, so we do the same
-  const callOrigin = typeof window !== "undefined" ? window.location.origin : "";
-  const callMuna = new Muna({ url: `${callOrigin}/api/muna` });
-  const callOpenai = callMuna.beta.openai;
-
-  // Use exact same approach as working test page
-  const response = await callOpenai.chat.completions.create({
+}: GenerateSummaryInput): AsyncGenerator<string, void, unknown> {
+  // Build prompt
+  const content = results.slice(0, 2).map(result => `
+    Here is the result from ${result.documentName} on page ${result.pageNumber}:
+    \`\`\`
+    ${result.text}
+    \`\`\`
+  `).concat(query).join("\n\n");
+  // Stream completion
+  const openai = muna.beta.openai;
+  const completion = await openai.chat.completions.create({
     model: "@anon/smollm_2_135m",
-    messages,
-    acceleration: acceleration,
-    stream: false,
-  } as any);
-
-  const content = (response as any)?.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new Error(`No content in LLM response: ${JSON.stringify(response)}`);
+    messages: [{ role: "user", content }],
+    acceleration,
+    stream: true,
+  });
+  // Yield chunks
+  try {
+    for await (const chunk of completion) {
+      const content = chunk?.choices?.[0]?.delta?.content;
+      if (content)
+        yield content;
+    }
+  } catch (error) {
+    console.error("Failed to stream completion from LLM", error);
+    yield "I couldn't generate a response. Please try again.";
   }
-
-  return content;
 }
-
-// Pin function names so they survive minification (used by worker RPC dispatch).
-Object.defineProperty(preloadModels, "name", { value: "preloadModels", writable: false });
-Object.defineProperty(createEmbeddings, "name", { value: "createEmbeddings", writable: false });
-Object.defineProperty(parseLayout, "name", { value: "parseLayout", writable: false });
-Object.defineProperty(recognizeTexts, "name", { value: "recognizeTexts", writable: false });
-Object.defineProperty(captionImage, "name", { value: "captionImage", writable: false });
-Object.defineProperty(generateText, "name", { value: "generateText", writable: false });

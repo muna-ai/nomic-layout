@@ -1,12 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 import { usePdfReader } from "@/hooks/use-pdf-reader"
 import { useLayoutParser } from "@/hooks/use-layout-parser"
 import { useVectorStore } from "@/hooks/use-vector-store"
 import { useSearchChat } from "@/hooks/use-search-chat"
 import { useModelStatus } from "@/hooks/use-model-status"
-import { initWorker } from "@/lib/worker-proxy"
 import {
   Conversation, ConversationContent,
   ConversationScrollButton,
@@ -26,7 +25,6 @@ import { PdfPreviewPanel } from "@/components/pdf-preview-panel"
 import { PreloadAttachment } from "@/components/preload-attachment"
 
 export default function Home() {
-  useEffect(() => { initWorker(); }, []);
   const modelStatus = useModelStatus();
   // Documents & text
   const [documents, setDocuments] = useState<File[]>([]);

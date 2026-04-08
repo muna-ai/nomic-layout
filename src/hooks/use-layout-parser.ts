@@ -1,10 +1,9 @@
 import type { Image } from "muna"
 import { useEffect, useRef, useState } from "react"
 import type { Page } from "@/hooks/use-pdf-reader"
-import { parseLayout, recognizeTexts, captionImage, type LayoutItem } from "@/lib/inference"
+import { parseLayout, recognizeTexts, captionImage, type LayoutItem } from "@/lib/ai"
 import { extractTextFromRegion, cropImage, isValidText, type TextItem } from "@/lib/pdf"
 import type { Element } from "@/lib/vector-store"
-import { postToWorkerThread } from "@/lib/worker-proxy"
 
 export interface UseLayoutParserInput {
   pages: Page[];
@@ -37,7 +36,7 @@ export function useLayoutParser({ pages }: UseLayoutParserInput): UseLayoutParse
         setActiveStatus(`Analyzing page ${page.pageNumber} of ${page.documentName}...`);
         let detections;
         try {
-          detections = await postToWorkerThread(parseLayout, { image: page.image });
+          detections = await parseLayout({ image: page.image });
         } catch (e) {
           console.warn(`Layout detection failed on page ${page.pageNumber} of ${page.documentName}:`, e);
           processedCountRef.current++;
@@ -91,7 +90,7 @@ async function extractText(
   if (det.label === "Picture") {
     try {
       const cropped = cropImage(image, det.x_min, det.y_min, det.x_max, det.y_max);
-      return await postToWorkerThread(captionImage, { image: cropped });
+      return await captionImage({ image: cropped });
     } catch (e) {
       console.warn(`Captioning failed for ROI ${roiIdx}:`, e);
       return undefined;
@@ -104,7 +103,7 @@ async function extractText(
   // Run OCR
   try {
     const cropped = cropImage(image, det.x_min, det.y_min, det.x_max, det.y_max);
-    const ocrResults = await postToWorkerThread(recognizeTexts, { image: cropped });
+    const ocrResults = await recognizeTexts({ image: cropped });
     if (ocrResults?.length)
       return ocrResults.map((r) => r.text).join(" ").trim();
   } catch (e) {

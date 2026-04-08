@@ -1,13 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, startTransition } from "react"
+import { generateSummary } from "@/lib/ai"
 import type { SearchResult } from "@/lib/vector-store"
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input"
-import { generateLLMText } from "@/lib/llm"
-import { postToWorkerThread } from "@/lib/worker-proxy"
-import { buildSummaryPrompt } from "@/lib/prompt-builder"
 
-export type PipelinePhase = "load-pdf" | "parse-layout" | "embed" | "search" | "generate";
+export type PipelinePhase = "load-pdf" | "parse-layout" | "embed" | "search" | "summarize";
 
 export interface ChatEntry {
   id: string;
@@ -83,16 +81,14 @@ export function useSearchChat({
           setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: "Generating response...", phase: "generate" as PipelinePhase } : e));
 
           // Generate LLM response from search results - stream the chunks
-          const messages = buildSummaryPrompt(query, results);
           let accumulatedResponse = "";
-
-          for await (const chunk of generateLLMText({ messages })) {
+          for await (const chunk of generateSummary({ query, results })) {
             accumulatedResponse += chunk;
             setEntries(prev => prev.map(e =>
               e.id === id ? { ...e, llmResponse: accumulatedResponse } : e
             ));
             // Small delay to ensure React processes each update
-            await new Promise(resolve => setTimeout(resolve, 0));
+            //await new Promise(resolve => setTimeout(resolve, 0));
           }
         }
 
