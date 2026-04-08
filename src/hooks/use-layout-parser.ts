@@ -89,8 +89,9 @@ async function extractText(
   // Caption image
   if (det.label === "Picture") {
     try {
-      const cropped = cropImage(image, det.x_min, det.y_min, det.x_max, det.y_max);
-      return await captionImage({ image: cropped });
+      return undefined; // unimplemented for now
+      // const cropped = cropImage(image, det.x_min, det.y_min, det.x_max, det.y_max);
+      // return await captionImage({ image: cropped });
     } catch (e) {
       console.warn(`Captioning failed for ROI ${roiIdx}:`, e);
       return undefined;

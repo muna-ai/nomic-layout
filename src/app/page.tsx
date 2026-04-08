@@ -28,7 +28,7 @@ export default function Home() {
   const modelStatus = useModelStatus();
   // Documents & text
   const [documents, setDocuments] = useState<File[]>([]);
-  const [text, setText] = useState("How much is the 8GB Raspberry Pi?");
+  const [text, setText] = useState("What CPU does the Raspberry Pi 5 use?");
   // Pipeline
   const { pages, status: pdfStatus } = usePdfReader({ documents });
   const { elements, status: parseStatus } = useLayoutParser({ pages });
@@ -47,7 +47,7 @@ export default function Home() {
   const pdfFileMap = new Map<string, File>();
   for (const doc of documents)
     pdfFileMap.set(doc.name, doc);
-  const modelsReady = modelStatus.layout === "ready" && modelStatus.embeddings === "ready" && modelStatus.ocr === "ready";
+  const modelsReady = modelStatus.layout === "ready" && modelStatus.embeddings === "ready" && modelStatus.ocr === "ready" && modelStatus.llm === "ready";
   const showPanel = result !== null;
   const lastEntry = entries.length > 0 ? entries[entries.length - 1] : null;
   const activePhase = lastEntry?.phase ?? null;
@@ -65,7 +65,6 @@ export default function Home() {
                   <ChatEntryView
                     key={entry.id}
                     entry={entry}
-                    result={result}
                     onShowPreview={showResultPreview}
                   />
                 ))}

@@ -9,12 +9,14 @@ export interface ModelStatusMap {
   layout: ModelLoadStatus;
   embeddings: ModelLoadStatus;
   ocr: ModelLoadStatus;
+  llm: ModelLoadStatus;
 }
 
 const INITIAL_STATUS: ModelStatusMap = {
   layout: "pending",
   embeddings: "pending",
   ocr: "pending",
+  llm: "pending",
 };
 
 let preloadStarted = false;

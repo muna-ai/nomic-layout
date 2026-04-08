@@ -108,25 +108,26 @@ const STEPS: Step[] = [
   {
     phase: "load-pdf",
     label: "Reading PDF",
-    description:
-      "Extracting pages and text layers with pdf.js, entirely in your browser.",
+    description: "Extracting pages and text layers with pdf.js, entirely in your browser.",
   },
   {
     phase: "parse-layout",
     label: "Analyzing Layout",
-    description:
-      "Nomic Layout v1 detects headings, text blocks, tables, and images entirely in your browser.",
+    description: "Nomic Layout v1 detects headings, text blocks, tables, and images entirely in your browser.",
   },
   {
     phase: "embed",
     label: "Creating Embeddings",
-    description:
-      "Nomic Embed v1.5 builds a semantic vector index locally in the browser.",
+    description: "Nomic Embed v1.5 builds a semantic vector index locally in the browser.",
   },
   {
     phase: "search",
     label: "Searching",
-    description:
-      "Finding the most relevant regions using vector similarity search.",
+    description: "Finding the most relevant regions using vector similarity search.",
+  },
+  {
+    phase: "summarize",
+    label: "Summarizing Results",
+    description: "SmolLM 2 135M creates a conversational summary based on the search results.",
   },
 ];

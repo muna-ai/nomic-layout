@@ -1,16 +1,18 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, startTransition } from "react"
+import { generateSummary } from "@/lib/ai"
 import type { SearchResult } from "@/lib/vector-store"
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input"
 
-export type PipelinePhase = "load-pdf" | "parse-layout" | "embed" | "search";
+export type PipelinePhase = "load-pdf" | "parse-layout" | "embed" | "search" | "summarize";
 
 export interface ChatEntry {
   id: string;
   query: string;
   fileNames?: string[];
   results?: SearchResult[];
+  llmResponse?: string;
   status?: string;
   phase?: PipelinePhase;
 }
@@ -69,14 +71,27 @@ export function useSearchChat({
     setPendingQuery(null);
     setIsSearching(true);
     if (id)
-      setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Searching...", phase: "search" as PipelinePhase } : e));
+      setEntries(prev => prev.map(e => e.id === id ? { ...e, status: "Searching...", phase: "search" satisfies PipelinePhase } : e));
     (async () => {
       try {
+        // Perform actual search
         const results = await searchStore(query);
+        if (id) {
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: "Generating response...", phase: "summarize" satisfies PipelinePhase } : e));
+          // Generate LLM response from search results - stream the chunks
+          let accumulatedResponse = "";
+          for await (const chunk of generateSummary({ query, results })) {
+            accumulatedResponse += chunk;
+            setEntries(prev => prev.map(e =>
+              e.id === id ? { ...e, llmResponse: accumulatedResponse } : e
+            ));
+          }
+        }
+        // Clear status
         if (id)
-          setEntries(prev => prev.map(e => e.id === id ? { ...e, results, status: undefined, phase: undefined } : e));
+          setEntries(prev => prev.map(e => e.id === id ? { ...e, status: undefined, phase: undefined } : e));
       } catch (err) {
-        console.error("Search failed:", err);
+        console.error("Search or LLM generation failed:", err);
         if (id)
           setEntries(prev => prev.map(e => e.id === id ? { ...e, results: [], status: undefined, phase: undefined } : e));
       } finally {

@@ -8,6 +8,7 @@ const MODEL_INFO: { key: keyof ModelStatusMap; label: string; tag: string }[] = 
   { key: "layout", label: "Layout Detection", tag: "nomic-layout-v1" },
   { key: "embeddings", label: "Text Embeddings", tag: "nomic-embed-v1.5" },
   { key: "ocr", label: "Text Recognition", tag: "rapid-ocr" },
+  { key: "llm", label: "Language Model", tag: "smollm-2-135m" },
 ];
 
 export function ModelLoadingStatus({ modelStatus }: { modelStatus: ModelStatusMap }) {
@@ -58,9 +59,6 @@ export function ModelLoadingStatus({ modelStatus }: { modelStatus: ModelStatusMa
           })}
         </div>
       </div>
-      <p className="text-[11px] text-muted-foreground/40">
-        Models are cached after first download
-      </p>
     </div>
   );
 }

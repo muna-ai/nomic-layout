@@ -54,7 +54,10 @@ function PdfThumbnail({ url }: { url: string }) {
     let cancelled = false;
     (async () => {
       const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.min.mjs",
+        import.meta.url
+      ).toString();
       const resp = await fetch(url);
       const buffer = await resp.arrayBuffer();
       const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
@@ -67,11 +70,7 @@ function PdfThumbnail({ url }: { url: string }) {
       const ctx = canvas.getContext("2d")!;
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({
-        canvas: canvas as any,
-        canvasContext: ctx as any,
-        viewport,
-      }).promise;
+      await page.render({ canvas, canvasContext: ctx, viewport } as any).promise;
       page.cleanup();
       doc.destroy();
       if (!cancelled) setReady(true);

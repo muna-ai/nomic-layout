@@ -1,7 +1,9 @@
 import { Muna } from "muna"
 import type { Acceleration, CreateEmbeddingResponse, Image } from "muna"
+import type { SearchResult } from "@/lib/vector-store"
 
-const origin = typeof self !== "undefined" ? self.location.origin : "";
+// Use self for both worker and main thread contexts (self is available in both)
+const origin = typeof self !== "undefined" && self.location ? self.location.origin : "";
 const muna = new Muna({ url: `${origin}/api/muna` });
 
 export type LayoutItemLabel = 
@@ -105,18 +107,42 @@ export interface CaptionImageInput {
   acceleration?: Acceleration;
 }
 
+export interface GenerateSummaryInput {
+  /**
+   * Search query.
+   */
+  query: string;
+  /**
+   * Search results.
+   */
+  results: SearchResult[];
+  /**
+   * Prediction acceleration.
+   */
+  acceleration?: Acceleration;
+}
+
 export async function preloadModels(
   onProgress?: (model: string, status: "loading" | "ready") => void
 ): Promise<void> {
   onProgress?.("layout", "loading");
-  try { await parseLayout({ } as any); } catch (err) { }
+  try { await parseLayout({ } as any); } catch (err) { console.warn(err); }
   onProgress?.("layout", "ready");
   onProgress?.("embeddings", "loading");
-  try { await createEmbeddings({ } as any); } catch (err) { }
+  try { await createEmbeddings({ } as any); } catch (err) { console.warn(err); }
   onProgress?.("embeddings", "ready");
   onProgress?.("ocr", "loading");
-  try { await recognizeTexts({ } as any); } catch (err) { }
+  try { await recognizeTexts({ } as any); } catch (err) { console.warn(err); }
   onProgress?.("ocr", "ready");
+  onProgress?.("llm", "loading");
+  try {
+    const openai = muna.beta.openai;
+    await openai.chat.completions.create({
+      model: "@huggingface/smollm2-135m",
+      messages: [],
+    });
+  } catch (err) { console.warn(err); }
+  onProgress?.("llm", "ready");
 }
 
 export async function createEmbeddings({
@@ -174,4 +200,37 @@ export async function captionImage({
   if (prediction.error)
     throw new Error(prediction.error);
   return prediction.results![0] as string;
+}
+
+export async function* generateSummary({
+  query,
+  results,
+  acceleration = "local_auto"
+}: GenerateSummaryInput): AsyncGenerator<string, void, unknown> {
+  // Build prompt
+  const content = results.slice(0, 2).map(result => `
+    Here is the result from ${result.documentName} on page ${result.pageNumber}:
+    \`\`\`
+    ${result.text}
+    \`\`\`
+  `).concat(query).join("\n\n");
+  // Stream completion
+  const openai = muna.beta.openai;
+  const completion = await openai.chat.completions.create({
+    model: "@huggingface/smollm2-135m",
+    messages: [{ role: "user", content }],
+    acceleration,
+    stream: true,
+  });
+  // Yield chunks
+  try {
+    for await (const chunk of completion) {
+      const content = chunk?.choices?.[0]?.delta?.content;
+      if (content)
+        yield content;
+    }
+  } catch (error) {
+    console.error("Failed to stream completion from LLM", error);
+    yield "I couldn't generate a response. Please try again.";
+  }
 }
