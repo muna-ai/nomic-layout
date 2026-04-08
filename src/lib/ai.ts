@@ -138,7 +138,7 @@ export async function preloadModels(
   try {
     const openai = muna.beta.openai;
     await openai.chat.completions.create({
-      model: "@huggingface/smollm2-135m",
+      model: LLM_MODEL,
       messages: [],
     });
   } catch (err) { console.warn(err); }
@@ -217,7 +217,7 @@ export async function* generateSummary({
   // Stream completion
   const openai = muna.beta.openai;
   const completion = await openai.chat.completions.create({
-    model: "@huggingface/smollm2-135m",
+    model: LLM_MODEL,
     messages: [{ role: "user", content }],
     acceleration,
     stream: true,
@@ -234,3 +234,5 @@ export async function* generateSummary({
     yield "I couldn't generate a response. Please try again.";
   }
 }
+
+const LLM_MODEL = "@huggingface/smollm2-360m";
