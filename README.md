@@ -1,5 +1,5 @@
 # Nomic Layout
-Empower your AI agents to find specific information in large, complex PDF documents using [Nomic's](https://nomic.ai) layout parsing model.
+Empower your AI agents to find specific information in large, complex PDF documents using [Nomic's](https://nomic.ai) layout  model.
 
 ## Using the Web Demo
 We have built a web demo, allowing users to upload PDFs and ask questions. The web demo runs layout detection, OCR, text embeddings, and LLM-based generation directly in the browser:
