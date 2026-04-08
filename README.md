@@ -1,5 +1,5 @@
 # Nomic Layout
-*INCOMPLETE*
+Empower your AI agents to find specific information in large, complex PDF documents using [Nomic's](https://nomic.ai) layout parsing model.
 
 ## Using the Web Demo
 We have built a web demo, allowing users to upload PDFs and ask questions. The web demo runs layout detection, OCR, text embeddings, and LLM-based generation directly in the browser:
@@ -41,5 +41,10 @@ Finally, drop a bunch of PDF's into the project directory and ask your AI agent 
 > "What kind of hydraulic fluid should we use in maintenance?"
 ```
 
-## Using the Web Demo
-*INCOMPLETE*
+___
+
+## Useful Links
+- [Join the Muna community](https://muna.ai/slack).
+- [Check out the Muna docs](https://docs.muna.ai).
+- [Read the Muna blog](https://muna.ai/blog).
+- Reach out to us at [hi@muna.ai](mailto:hi@muna.ai).

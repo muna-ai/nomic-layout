@@ -20,4 +20,4 @@ Each script is self-contained using [PEP 723](https://peps.python.org/pep-0723/)
 ## Requirements
 
 - [`uv`](https://docs.astral.sh/uv/)
-- A [Muna](https://muna.ai) access key (`MUNA_ACCESS_KEY` env var or `.env.` file)
+- A [Muna](https://muna.ai) access key (`MUNA_ACCESS_KEY` env var or `.env` file)
